@@ -171,19 +171,19 @@ export const auth = {
 
   signInUserWithGoogle: () => {
     window.location.href = `${
-      import.meta.env.VITE_BACKEND_API_URL
+      import.meta.env.VITE_ADMIN_BACKEND_API_URL
     }/auth/google?redirect_uri=${import.meta.env.VITE_ADMIN_URL}`;
   },
 
   signInUserWithGithub: () => {
     window.location.href = `${
-      import.meta.env.VITE_BACKEND_API_URL
+      import.meta.env.VITE_ADMIN_BACKEND_API_URL
     }/auth/github?redirect_uri=${import.meta.env.VITE_ADMIN_URL}`;
   },
 
   signInUserWithMicrosoft: () => {
     window.location.href = `${
-      import.meta.env.VITE_BACKEND_API_URL
+      import.meta.env.VITE_ADMIN_BACKEND_API_URL
     }/auth/microsoft?redirect_uri=${import.meta.env.VITE_ADMIN_URL}`;
   },
 

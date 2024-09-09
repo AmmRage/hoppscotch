@@ -30,9 +30,12 @@ import { VerificationToken } from '@prisma/client';
 import { Origin } from './helper';
 import { ConfigService } from '@nestjs/config';
 import { InfraConfigService } from 'src/infra-config/infra-config.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
+  private myLogger = new Logger('AuthService');
+
   constructor(
     private usersService: UserService,
     private prismaService: PrismaService,
@@ -52,12 +55,15 @@ export class AuthService {
     const salt = await bcrypt.genSalt(
       parseInt(this.configService.get('TOKEN_SALT_COMPLEXITY')),
     );
-    const expiresOn = DateTime.now()
+    const now = DateTime.now();
+    this.myLogger.debug(`now: ${now}`);
+
+    const expiresOn = now
       .plus({
         hours: parseInt(this.configService.get('MAGIC_LINK_TOKEN_VALIDITY')),
       })
-      .toISO()
-      .toString();
+      .toISO();
+    this.myLogger.debug(`expiresOn: ${expiresOn}`);
 
     const idToken = await this.prismaService.verificationToken.create({
       data: {
@@ -233,15 +239,31 @@ export class AuthService {
         // if origin is invalid by default set URL to Hoppscotch-App
         url = this.configService.get('VITE_BASE_URL');
     }
-
-    await this.mailerService.sendEmail(email, {
-      template: 'user-invitation',
-      variables: {
-        inviteeEmail: email,
-        magicLink: `${url}/enter?token=${generatedTokens.token}`,
-      },
-    });
-
+    const generatedMagicLink = `${url}/enter?token=${generatedTokens.token}`;
+    this.myLogger.debug(`Magic Link: ${generatedMagicLink}`);
+    this.myLogger.debug(
+      `Device Identifier: ${generatedTokens.deviceIdentifier}`,
+    );
+    try {
+      await this.mailerService.sendEmail(email, {
+        template: 'user-invitation',
+        variables: {
+          inviteeEmail: email,
+          magicLink: generatedMagicLink,
+        },
+      });
+    } catch (error) {
+      this.myLogger.error(`Error sending Magic Link to ${email}`);
+      const userCount = await this.usersService.getUsersCount();
+      if (userCount === 0) {
+        this.myLogger.debug(`userCount: ${userCount}`);
+        this.myLogger.debug(`if userCount === 0, return E.right`);
+        return E.right(<DeviceIdentifierToken>{
+          deviceIdentifier: generatedTokens.deviceIdentifier,
+        });
+      }
+    }
+    this.myLogger.debug(`Magic Link sent to ${email}`);
     return E.right(<DeviceIdentifierToken>{
       deviceIdentifier: generatedTokens.deviceIdentifier,
     });
@@ -264,7 +286,9 @@ export class AuthService {
         message: INVALID_MAGIC_LINK_DATA,
         statusCode: HttpStatus.NOT_FOUND,
       });
-
+    this.myLogger.debug(
+      `user id from magic link: ${passwordlessTokens.value.userUid}`,
+    );
     const user = await this.usersService.findUserById(
       passwordlessTokens.value.userUid,
     );
@@ -297,7 +321,9 @@ export class AuthService {
     }
 
     const currentTime = DateTime.now().toISO();
-    if (currentTime > passwordlessTokens.value.expiresOn.toISOString())
+    this.myLogger.debug(`current time: ${currentTime}`);
+    this.myLogger.debug(`expires on: ${passwordlessTokens.value.expiresOn}`);
+    if (currentTime > passwordlessTokens.value.expiresOn.toLocaleString())
       return E.left({
         message: MAGIC_LINK_EXPIRED,
         statusCode: HttpStatus.UNAUTHORIZED,
