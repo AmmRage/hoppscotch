@@ -29,10 +29,13 @@ import { AUTH_PROVIDER_NOT_SPECIFIED } from 'src/errors';
 import { ConfigService } from '@nestjs/config';
 import { throwHTTPErr } from 'src/utils';
 import { UserLastLoginInterceptor } from 'src/interceptors/user-last-login.interceptor';
+import { Logger } from '@nestjs/common';
 
 @UseGuards(ThrottlerBehindProxyGuard)
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
+  private myLogger = new Logger('AuthController');
+
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
@@ -76,7 +79,8 @@ export class AuthController {
   async verify(@Body() data: VerifyMagicDto, @Res() res: Response) {
     const authTokens = await this.authService.verifyMagicLinkTokens(data);
     if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    authCookieHandler(res, authTokens.right, false, null);
+    const ret = authCookieHandler(res, authTokens.right, false, null);
+    // this.myLogger.log('verify', ret);
   }
 
   /**
