@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { InfraTokensController } from './infra-token/infra-token.controller';
 import { InfraTokenModule } from './infra-token/infra-token.module';
+import { MyLogger } from './infra-logging/logger';
 
 function setupSwagger(app) {
   const swaggerDocPath = '/api-docs';
@@ -38,7 +39,9 @@ function setupSwagger(app) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new MyLogger(),
+  });
 
   const configService = app.get(ConfigService);
 
@@ -68,6 +71,24 @@ async function bootstrap() {
 
     app.enableCors({
       origin: configService.get('WHITELISTED_ORIGINS').split(','),
+      methods: [
+        'GET',
+        'POST',
+        'PUT',
+        'DELETE',
+        'PATCH',
+        'OPTIONS',
+        'HEAD',
+        'TRACE',
+        'CONNECT',
+        'PROPFIND',
+        'PROPPATCH',
+        'MKCOL',
+        'COPY',
+        'MOVE',
+        'LOCK',
+        'UNLOCK',
+      ],
       credentials: true,
     });
   } else {
@@ -75,6 +96,24 @@ async function bootstrap() {
 
     app.enableCors({
       origin: configService.get('WHITELISTED_ORIGINS').split(','),
+      methods: [
+        'GET',
+        'POST',
+        'PUT',
+        'DELETE',
+        'PATCH',
+        'OPTIONS',
+        'HEAD',
+        'TRACE',
+        'CONNECT',
+        'PROPFIND',
+        'PROPPATCH',
+        'MKCOL',
+        'COPY',
+        'MOVE',
+        'LOCK',
+        'UNLOCK',
+      ],
       credentials: true,
     });
   }

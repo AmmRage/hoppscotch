@@ -51,6 +51,12 @@
           :label="t('state.continue_email')"
           @click="mode = 'email'"
         />
+        <HoppSmartItem
+          v-if="allowedAuthProviders.includes('EMAIL')"
+          :icon="IconUserPlus"
+          label="Create Initial User"
+          @click="mode = 'initial'"
+        />
       </div>
       <form
         v-if="mode === 'email' && allowedAuthProviders"
@@ -162,6 +168,7 @@ import IconGoogle from '~icons/auth/google';
 import IconMicrosoft from '~icons/auth/microsoft';
 import IconArrowLeft from '~icons/lucide/arrow-left';
 import IconFileText from '~icons/lucide/file-text';
+import IconUserPlus from '~icons/lucide/user-plus';
 
 const t = useI18n();
 const toast = useToast();
