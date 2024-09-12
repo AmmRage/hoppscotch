@@ -112,6 +112,14 @@ model User {
   personalAccessTokens PersonalAccessToken[]
 }
 
+model UserPasswordViaEmailToken {
+  uid                  String                @id @default(cuid())
+  email                String?               @unique
+  token                String?
+  password             String?
+}
+
+
 model Account {
   id                   String   @id @default(cuid())
   userId               String

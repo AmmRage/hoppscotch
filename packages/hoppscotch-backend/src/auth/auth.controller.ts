@@ -30,6 +30,8 @@ import { ConfigService } from '@nestjs/config';
 import { throwHTTPErr } from 'src/utils';
 import { UserLastLoginInterceptor } from 'src/interceptors/user-last-login.interceptor';
 import { Logger } from '@nestjs/common';
+import { SignInPasswordDto } from './dto/signin-password.dto';
+import { VerifyPasswordDto } from './dto/verify-password.dto';
 
 @UseGuards(ThrottlerBehindProxyGuard)
 @Controller({ path: 'auth', version: '1' })
@@ -70,6 +72,61 @@ export class AuthController {
     );
     if (E.isLeft(deviceIdToken)) throwHTTPErr(deviceIdToken.left);
     return deviceIdToken.right;
+  }
+
+  /**
+   ** Route to register username and password function, built on initiating magic-link auth for a users email
+   * step 1: use existing email based logic to generate user info
+   */
+  @Post('register-email-password')
+  async signInPasswordViaEmailToken(
+    @Body() authData: SignInPasswordDto,
+    @Query('origin') origin: string,
+  ) {
+    if (
+      !authProviderCheck(
+        AuthProvider.EMAIL,
+        this.configService.get('INFRA.VITE_ALLOWED_AUTH_PROVIDERS'),
+      )
+    ) {
+      throwHTTPErr({ message: AUTH_PROVIDER_NOT_SPECIFIED, statusCode: 404 });
+    }
+
+    if (
+      authData.password.length < 8 || // password must be at least 8 characters long
+      authData.password.length > 16 || // password must be at most 16 characters long
+      !authData.password.match(/[a-z]/) || // password must contain at least one lowercase letter
+      !authData.password.match(/[A-Z]/) || // password must contain at least one uppercase letter
+      !authData.password.match(/[0-9]/) // password must contain at least one number
+    ) {
+      throwHTTPErr({
+        message:
+          'Password must be  8-16 characters long and contain at least one lowercase letter, one uppercase letter, and one number',
+        statusCode: 400,
+      });
+    }
+
+    const deviceIdToken = await this.authService.registerUserWithMagicLink(
+      authData.email,
+      authData.password,
+      origin,
+    );
+    if (E.isLeft(deviceIdToken)) throwHTTPErr(deviceIdToken.left);
+    return deviceIdToken.right;
+  }
+
+  /**
+   ** Route to verify and sign in a valid user via magic-link
+   */
+  @Post('verify-email-password')
+  async verifyPasswordViaEmailToken(
+    @Body() data: VerifyPasswordDto,
+    @Res() res: Response,
+  ) {
+    const authTokens = await this.authService.verifyPasswordTokens(data);
+    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
+    const ret = authCookieHandler(res, authTokens.right, false, null);
+    // this.myLogger.log('verify', ret);
   }
 
   /**

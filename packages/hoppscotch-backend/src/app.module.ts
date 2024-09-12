@@ -2,6 +2,7 @@ import { ForbiddenException, HttpException, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { UserModule } from './user/user.module';
+import { UserPasswordModule } from './user-password/user-password.module';
 import { GQLComplexityPlugin } from './plugins/GQLComplexityPlugin';
 import { AuthModule } from './auth/auth.module';
 import { UserSettingsModule } from './user-settings/user-settings.module';
@@ -88,6 +89,7 @@ import { InfraTokenModule } from './infra-token/infra-token.module';
     }),
     MailerModule.register(),
     UserModule,
+    UserPasswordModule,
     AuthModule.register(),
     AdminModule,
     UserSettingsModule,

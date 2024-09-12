@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 # # Install pnpm
 RUN npm i -g pnpm
 
-COPY .env .
+COPY test/.env .
 COPY pnpm-lock.yaml .
 RUN pnpm fetch
 

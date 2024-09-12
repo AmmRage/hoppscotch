@@ -39,10 +39,13 @@ function setupSwagger(app) {
 }
 
 async function bootstrap() {
+  console.log('create app');
   const app = await NestFactory.create(AppModule, {
     logger: new MyLogger(),
   });
+  // const app = await NestFactory.create(AppModule);
 
+  console.log('Getting config service');
   const configService = app.get(ConfigService);
 
   console.log(`Running in production:  ${configService.get('PRODUCTION')}`);
@@ -139,7 +142,16 @@ async function bootstrap() {
 }
 
 if (!process.env.GENERATE_GQL_SCHEMA) {
-  bootstrap();
+  console.log('Starting server');
+  try {
+    bootstrap().then((r) => {
+      console.log('Server started');
+      console.log(`Running on port ${process.env.PORT || 3170}`);
+    });
+  } catch (e) {
+    console.error(' Error starting server', e);
+  }
 } else {
+  console.log('Generating GQL schema');
   emitGQLSchemaFile();
 }

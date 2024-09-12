@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { MailerService } from 'src/mailer/mailer.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserService } from 'src/user/user.service';
+import { UserPasswordService } from 'src/user-password/user-password.service';
 import { VerifyMagicDto } from './dto/verify-magic.dto';
 import { DateTime } from 'luxon';
 import * as argon2 from 'argon2';
@@ -31,6 +32,7 @@ import { Origin } from './helper';
 import { ConfigService } from '@nestjs/config';
 import { InfraConfigService } from 'src/infra-config/infra-config.service';
 import { Logger } from '@nestjs/common';
+import { VerifyPasswordDto } from './dto/verify-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +41,7 @@ export class AuthService {
   constructor(
     private usersService: UserService,
     private prismaService: PrismaService,
+    private userPasswordService: UserPasswordService,
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
@@ -272,6 +275,93 @@ export class AuthService {
   }
 
   /**
+   * Create User (if not already present) and save the token to UserPasswordViaEmailToken table
+   *
+   * @param email User's email
+   * @param password User's password
+   * @param origin origin
+   * @returns Either containing DeviceIdentifierToken
+   */
+  async registerUserWithMagicLink(
+    email: string,
+    password: string,
+    origin: string,
+  ) {
+    if (!validateEmail(email))
+      return E.left({
+        message: INVALID_EMAIL,
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+
+    const existingUserCount = await this.usersService.getUsersCount();
+    if (existingUserCount > 0) {
+      return E.left({
+        message: 'Not allowed to register new user',
+        statusCode: HttpStatus.FORBIDDEN,
+      });
+    }
+
+    let user: AuthUser;
+    const queriedUser = await this.usersService.findUserByEmail(email);
+
+    if (O.isNone(queriedUser)) {
+      user = await this.usersService.createUserViaMagicLink(email);
+    } else {
+      user = queriedUser.value;
+    }
+
+    const generatedTokens = await this.generateMagicLinkTokens(user);
+
+    // check to see if origin is valid
+    let url: string;
+    switch (origin) {
+      case Origin.ADMIN:
+        url = this.configService.get('VITE_ADMIN_URL');
+        break;
+      case Origin.APP:
+        url = this.configService.get('VITE_BASE_URL');
+        break;
+      default:
+        // if origin is invalid by default set URL to Hoppscotch-App
+        url = this.configService.get('VITE_BASE_URL');
+    }
+    const generatedMagicLink = `${url}/enter?token=${generatedTokens.token}`;
+    this.myLogger.debug(``);
+    this.myLogger.debug(``);
+    this.myLogger.debug(`Magic Link: ${generatedMagicLink}`);
+    this.myLogger.debug(
+      `Device Identifier: ${generatedTokens.deviceIdentifier}`,
+    );
+    try {
+      //save token to UserPasswordViaEmailToken table instead of sending email
+      // await this.mailerService.sendEmail(email, {
+      //   template: 'user-invitation',
+      //   variables: {
+      //     inviteeEmail: email,
+      //     magicLink: generatedMagicLink,
+      //   },
+      // });
+      const result = await this.userPasswordService.upsertPasswordToken(
+        email,
+        password,
+        generatedTokens.token,
+      );
+      this.myLogger.debug(
+        `userPasswordService result: ${JSON.stringify(result)}`,
+      );
+    } catch (error) {
+      return E.left({
+        message: `Error saving token: ${error}`,
+        statusCode: 500,
+      });
+    }
+    // this.myLogger.debug(`Magic Link sent to ${email}`);
+    return E.right(<DeviceIdentifierToken>{
+      deviceIdentifier: generatedTokens.deviceIdentifier,
+    });
+  }
+
+  /**
    * Verify and authenticate user from received data for Magic-Link
    *
    * @param magicLinkIDTokens magic-link verification tokens from client
@@ -280,6 +370,120 @@ export class AuthService {
   async verifyMagicLinkTokens(
     magicLinkIDTokens: VerifyMagicDto,
   ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+    const passwordlessTokens = await this.validatePasswordlessTokens(
+      magicLinkIDTokens,
+    );
+    if (O.isNone(passwordlessTokens))
+      return E.left({
+        message: INVALID_MAGIC_LINK_DATA,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    // this.myLogger.debug(
+    //   `user id from magic link: ${passwordlessTokens.value.userUid}`,
+    // );
+    const user = await this.usersService.findUserById(
+      passwordlessTokens.value.userUid,
+    );
+    if (O.isNone(user))
+      return E.left({
+        message: USER_NOT_FOUND,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
+    /**
+     * * Check to see if entry for Magic-Link is present in the Account table for user
+     * * If user was created with another provider findUserById may return true
+     */
+    const profile = {
+      provider: 'magic',
+      id: user.value.email,
+    };
+    const providerAccountExists = await this.checkIfProviderAccountExists(
+      user.value,
+      profile,
+    );
+
+    if (O.isNone(providerAccountExists)) {
+      await this.usersService.createProviderAccount(
+        user.value,
+        null,
+        null,
+        profile,
+      );
+    }
+
+    const currentTime = DateTime.now();
+    // this.myLogger.debug(`current time iso: ${currentTime.toISO()}`);
+    // this.myLogger.debug(
+    //   `expires on iso: ${passwordlessTokens.value.expiresOn.toISOString()}`,
+    // );
+
+    const expiresOnDateTime = DateTime.fromJSDate(
+      passwordlessTokens.value.expiresOn,
+    );
+    // this.myLogger.debug(`currentTime: ${currentTime}`);
+    // this.myLogger.debug(`expiresOnDateTime: ${expiresOnDateTime}`);
+
+    if (currentTime > expiresOnDateTime) {
+      // this.myLogger.debug(`verifyMagicLinkTokens: 401`);
+      return E.left({
+        message: MAGIC_LINK_EXPIRED,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
+    const tokens = await this.generateAuthTokens(
+      passwordlessTokens.value.userUid,
+    );
+    if (E.isLeft(tokens)) {
+      // this.myLogger.debug(`verifyMagicLinkTokens: ${tokens.left.statusCode}`);
+      return E.left({
+        message: tokens.left.message,
+        statusCode: tokens.left.statusCode,
+      });
+    }
+
+    const deletedPasswordlessToken =
+      await this.deleteMagicLinkVerificationTokens(passwordlessTokens.value);
+    if (E.isLeft(deletedPasswordlessToken)) {
+      // this.myLogger.debug(`verifyMagicLinkTokens: ${HttpStatus.NOT_FOUND}`);
+      return E.left({
+        message: deletedPasswordlessToken.left,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+    const updateUserResult = await this.usersService.updateUserLastLoggedOn(
+      passwordlessTokens.value.userUid,
+    );
+    // this.myLogger.debug(
+    //   `updateUserResult: ${JSON.stringify(updateUserResult)}`,
+    // );
+    return E.right(tokens.right);
+  }
+
+  /**
+   * Verify and authenticate user from received data for Magic-Link
+   *
+   * @param magicLinkIDTokens magic-link verification tokens from client
+   * @returns Either of generated AuthTokens
+   */
+  async verifyPasswordTokens(
+    passwordDto: VerifyPasswordDto,
+  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+    const result = await this.userPasswordService.verifyPasswordAndToken(
+      passwordDto.email,
+      passwordDto.password,
+      passwordDto.token,
+    );
+    if (!result)
+      return E.left({
+        message: 'Invalid email, password or token',
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
+    //
+    const magicLinkIDTokens = new VerifyMagicDto();
+    magicLinkIDTokens.deviceIdentifier = passwordDto.deviceIdentifier;
+    magicLinkIDTokens.token = passwordDto.token;
     const passwordlessTokens = await this.validatePasswordlessTokens(
       magicLinkIDTokens,
     );
