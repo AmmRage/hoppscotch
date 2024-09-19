@@ -77,6 +77,32 @@
           :label="t('state.send_magic_link')"
         />
       </form>
+
+      <form
+        v-if="mode === 'initial'"
+        class="flex flex-col space-y-4"
+        @submit.prevent="initialRegisterByUsernamePassword"
+      >
+        <HoppSmartInput
+          v-model="form.username"
+          type="initial"
+          placeholder="your email as username"
+          input-styles="floating-input"
+        />
+
+        <HoppSmartInput
+          v-model="form.password"
+          type="initial"
+          placeholder="password"
+          input-styles="floating-input"
+        />
+
+        <HoppButtonPrimary
+          :loading="registerByUsernamePassword"
+          type="submit"
+          label="Register"
+        />
+      </form>
       <div v-if="!allowedAuthProviders">
         <p>{{ t('state.require_auth_provider') }}</p>
         <p>{{ t('state.configure_auth') }}</p>
@@ -185,6 +211,7 @@ const signingInWithGoogle = ref(false);
 const signingInWithGitHub = ref(false);
 const signingInWithMicrosoft = ref(false);
 const signingInWithEmail = ref(false);
+const registerByUsernamePassword = ref(false);
 const mode = ref('sign-in');
 const nonAdminUser = ref(false);
 
@@ -248,6 +275,20 @@ const signInWithEmail = async () => {
     toast.error(t('state.email_signin_failure'));
   }
   signingInWithEmail.value = false;
+};
+
+
+const initialRegisterByUsernamePassword = async () => {
+  registerByUsernamePassword.value = true;
+  try {
+    await auth.initialRegisterByUsernamePassword(form.value.username, form.value.password);
+    // mode.value = 'email-sent';
+    setLocalConfig('emailForSignIn', form.value.username);
+  } catch (e) {
+    console.error(e);
+    toast.error(t('state.email_signin_failure'));
+  }
+  registerByUsernamePassword.value = false;
 };
 
 const getAllowedAuthProviders = async () => {

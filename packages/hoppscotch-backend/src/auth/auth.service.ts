@@ -293,6 +293,10 @@ export class AuthService {
         statusCode: HttpStatus.BAD_REQUEST,
       });
 
+    this.myLogger.log(
+      `auth.service registerUserWithMagicLink: ${email}, ${password}, ${origin}`,
+    );
+
     const existingUserCount = await this.usersService.getUsersCount();
     if (existingUserCount > 0) {
       return E.left({
@@ -300,6 +304,9 @@ export class AuthService {
         statusCode: HttpStatus.FORBIDDEN,
       });
     }
+    this.myLogger.log(
+      `auth.service registerUserWithMagicLink: existingUserCount: ${existingUserCount}`,
+    );
 
     let user: AuthUser;
     const queriedUser = await this.usersService.findUserByEmail(email);
@@ -309,9 +316,15 @@ export class AuthService {
     } else {
       user = queriedUser.value;
     }
-
+    this.myLogger.log(
+      `auth.service registerUserWithMagicLink: user: ${JSON.stringify(user)}`,
+    );
     const generatedTokens = await this.generateMagicLinkTokens(user);
-
+    this.myLogger.log(
+      `auth.service registerUserWithMagicLink: generatedTokens: ${JSON.stringify(
+        generatedTokens,
+      )}`,
+    );
     // check to see if origin is valid
     let url: string;
     switch (origin) {

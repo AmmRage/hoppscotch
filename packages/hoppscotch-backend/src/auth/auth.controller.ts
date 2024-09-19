@@ -79,10 +79,7 @@ export class AuthController {
    * step 1: use existing email based logic to generate user info
    */
   @Post('register-email-password')
-  async signInPasswordViaEmailToken(
-    @Body() authData: SignInPasswordDto,
-    @Query('origin') origin: string,
-  ) {
+  async signInPasswordViaEmailToken(@Body() authData: SignInPasswordDto) {
     if (
       !authProviderCheck(
         AuthProvider.EMAIL,
@@ -91,6 +88,9 @@ export class AuthController {
     ) {
       throwHTTPErr({ message: AUTH_PROVIDER_NOT_SPECIFIED, statusCode: 404 });
     }
+
+    this.myLogger.log('signInPasswordViaEmailToken start to run without error');
+    this.myLogger.log('check password format');
 
     if (
       authData.password.length < 8 || // password must be at least 8 characters long
@@ -105,11 +105,11 @@ export class AuthController {
         statusCode: 400,
       });
     }
-
+    this.myLogger.log('password format passed');
     const deviceIdToken = await this.authService.registerUserWithMagicLink(
       authData.email,
       authData.password,
-      origin,
+      'admin',
     );
     if (E.isLeft(deviceIdToken)) throwHTTPErr(deviceIdToken.left);
     return deviceIdToken.right;

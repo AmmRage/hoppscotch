@@ -150,6 +150,15 @@ const sendMagicLink = async (email: string) => {
   return res.data;
 };
 
+const registerByEmailPassword = async (email: string, password: string) => {
+  const res = await authQuery.registerEmailPassword(email, password);
+  if (!res.data?.deviceIdentifier) {
+    throw new Error('test: does not get device identifier');
+  }
+  setLocalConfig('deviceIdentifier', res.data.deviceIdentifier);
+  return res.data;
+};
+
 export const auth = {
   getCurrentUserStream: () => currentUser$,
   getAuthEventsStream: () => authEvents$,
@@ -162,6 +171,7 @@ export const auth = {
   },
 
   signInWithEmail: (email: string) => sendMagicLink(email),
+  initialRegisterByUsernamePassword: async (username: string, password: string) => registerByEmailPassword(username, password),
 
   isSignInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);
