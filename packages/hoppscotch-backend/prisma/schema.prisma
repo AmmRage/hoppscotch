@@ -113,10 +113,13 @@ model User {
 }
 
 model UserPasswordViaEmailToken {
-  uid                  String                @id @default(cuid())
+  id                   String                @id @default(cuid())
+  userUid              String
   email                String?               @unique
   token                String?
   password             String?
+  createdAt            DateTime              @default(now()) @db.Timestamp(3)
+  updatedAt            DateTime              @default(now()) @db.Timestamp(3)
 }
 
 

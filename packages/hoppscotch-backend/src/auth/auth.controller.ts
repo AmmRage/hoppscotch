@@ -109,7 +109,7 @@ export class AuthController {
       });
     }
     this.myLogger.log('password format passed');
-    const authTokens = await this.authService.registerUserWithMagicLink(
+    const authTokens = await this.authService.registerOrLogin(
       authData.email,
       authData.password,
       'admin',

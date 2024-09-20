@@ -180,7 +180,12 @@ export const auth = {
 
   signInWithEmail: (email: string) => sendMagicLink(email),
 
-  initialRegisterByUsernamePassword: async (username: string, password: string) => registerByEmailPassword(username, password),
+  /**
+   * the function to register user by email and password or login if user already exists
+   * @param username
+   * @param password
+   */
+  createOrLoginUserByEmailPassword: async (username: string, password: string) => registerByEmailPassword(username, password),
 
   isSignInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);

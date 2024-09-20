@@ -54,7 +54,7 @@
         <HoppSmartItem
           v-if="allowedAuthProviders.includes('EMAIL')"
           :icon="IconUserPlus"
-          label="Create Initial User"
+          label="Continue with username password"
           @click="mode = 'initial'"
         />
       </div>
@@ -92,7 +92,7 @@
 
         <HoppSmartInput
           v-model="form.password"
-          type="initial"
+          type="password"
           placeholder="password"
           input-styles="floating-input"
         />
@@ -281,7 +281,7 @@ const signInWithEmail = async () => {
 const initialRegisterByUsernamePassword = async () => {
   registerByUsernamePassword.value = true;
   try {
-    await auth.initialRegisterByUsernamePassword(form.value.username, form.value.password);
+    await auth.createOrLoginUserByEmailPassword(form.value.username, form.value.password);
     mode.value = 'email-sent';
     setLocalConfig('emailForSignIn', form.value.username);
     window.location.href = import.meta.env.VITE_ADMIN_URL

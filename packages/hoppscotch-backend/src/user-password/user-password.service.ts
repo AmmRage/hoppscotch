@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { DateTime } from 'luxon';
 import * as O from 'fp-ts/Option';
 import * as E from 'fp-ts/Either';
 import * as TO from 'fp-ts/TaskOption';
@@ -24,17 +25,21 @@ export class UserPasswordService {
    * @param email User's email
    * @param password User's password
    * @param token User's token supposed to share via email
+   * @param userUid
    * @returns Option of found User
    */
   async upsertPasswordToken(
     email: string,
-    token: string,
     password: string,
+    token: string,
+    userUid: string,
   ): Promise<O.None | O.Some<boolean>> {
+    const createdAt = DateTime.now().toLocal().toJSDate();
+    const updatedAt = DateTime.now().toLocal().toJSDate();
     const user = await this.prisma.userPasswordViaEmailToken.upsert({
       where: { email },
-      create: { email, token, password },
-      update: { token, password },
+      create: { email, password, token, userUid, createdAt, updatedAt },
+      update: { token, password, userUid, updatedAt },
     });
 
     return user ? O.some(true) : O.none;
@@ -86,5 +91,16 @@ export class UserPasswordService {
     return user?.password === password && user?.token === token
       ? O.some(true)
       : O.none;
+  }
+
+  async verifyUsernameAndPassword(
+    email: string,
+    password: string,
+  ): Promise<O.None | O.Some<boolean>> {
+    const user = await this.prisma.userPasswordViaEmailToken.findUnique({
+      where: { email },
+    });
+
+    return user?.password === password ? O.some(true) : O.none;
   }
 }

@@ -275,6 +275,25 @@ export class AuthService {
   }
 
   /**
+   * register user if no user is present, else login user
+   * @param email
+   * @param password
+   * @param origin
+   */
+  async registerOrLogin(
+    email: string,
+    password: string,
+    origin: string,
+  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+    const existingUserCount = await this.usersService.getUsersCount();
+    if (existingUserCount > 0) {
+      return await this.verifyUserByUsernamePassword(email, password);
+    } else {
+      return await this.registerUserWithMagicLink(email, password, origin);
+    }
+  }
+
+  /**
    * Create User (if not already present) and verify it automatically
    *
    * @param email User's email
@@ -360,6 +379,7 @@ export class AuthService {
         email,
         password,
         generatedTokens.token,
+        user.uid,
       );
       this.myLogger.debug(
         `userPasswordService result: ${JSON.stringify(result)}`,
@@ -553,10 +573,46 @@ export class AuthService {
   }
 
   /**
+   * Verify and authenticate user by username and password
+   * @param username
+   * @param password
+   */
+  async verifyUserByUsernamePassword(
+    username: string,
+    password: string,
+  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+    const result = await this.userPasswordService.verifyUsernameAndPassword(
+      username,
+      password,
+    );
+    if (!result)
+      return E.left({
+        message: 'Invalid username or password',
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
+    const userUid = await this.usersService.findUserUidByEmail(username);
+    if (O.isNone(userUid))
+      return E.left({
+        message: USER_NOT_FOUND,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    const tokens = await this.generateAuthTokens(userUid ? userUid.value : '');
+    if (E.isLeft(tokens)) {
+      return E.left({
+        message: tokens.left.message,
+        statusCode: tokens.left.statusCode,
+      });
+    }
+
+    return E.right(tokens.right);
+  }
+
+  /**
    * Verify and authenticate user from received data for Magic-Link
    *
-   * @param magicLinkIDTokens magic-link verification tokens from client
    * @returns Either of generated AuthTokens
+   * @param passwordDto
    */
   async verifyPasswordTokens(
     passwordDto: VerifyPasswordDto,

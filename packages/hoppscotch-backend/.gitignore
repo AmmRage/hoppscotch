@@ -4,7 +4,7 @@
 
 .vscode
 
-test/.env
+.env
 
 
 # Logs
