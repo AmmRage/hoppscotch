@@ -79,7 +79,10 @@ export class AuthController {
    * step 1: use existing email based logic to generate user info
    */
   @Post('register-email-password')
-  async signInPasswordViaEmailToken(@Body() authData: SignInPasswordDto) {
+  async signInPasswordViaEmailToken(
+    @Body() authData: SignInPasswordDto,
+    @Res() res: Response,
+  ) {
     if (
       !authProviderCheck(
         AuthProvider.EMAIL,
@@ -106,13 +109,13 @@ export class AuthController {
       });
     }
     this.myLogger.log('password format passed');
-    const deviceIdToken = await this.authService.registerUserWithMagicLink(
+    const authTokens = await this.authService.registerUserWithMagicLink(
       authData.email,
       authData.password,
       'admin',
     );
-    if (E.isLeft(deviceIdToken)) throwHTTPErr(deviceIdToken.left);
-    return deviceIdToken.right;
+    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
+    authCookieHandler(res, authTokens.right, false, null);
   }
 
   /**
@@ -125,19 +128,14 @@ export class AuthController {
   ) {
     const authTokens = await this.authService.verifyPasswordTokens(data);
     if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    const ret = authCookieHandler(res, authTokens.right, false, null);
-    // this.myLogger.log('verify', ret);
+    authCookieHandler(res, authTokens.right, false, null);
   }
 
-  /**
-   ** Route to verify and sign in a valid user via magic-link
-   */
   @Post('verify')
   async verify(@Body() data: VerifyMagicDto, @Res() res: Response) {
     const authTokens = await this.authService.verifyMagicLinkTokens(data);
     if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    const ret = authCookieHandler(res, authTokens.right, false, null);
-    // this.myLogger.log('verify', ret);
+    authCookieHandler(res, authTokens.right, false, null);
   }
 
   /**

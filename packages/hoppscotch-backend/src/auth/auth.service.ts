@@ -275,7 +275,7 @@ export class AuthService {
   }
 
   /**
-   * Create User (if not already present) and save the token to UserPasswordViaEmailToken table
+   * Create User (if not already present) and verify it automatically
    *
    * @param email User's email
    * @param password User's password
@@ -286,7 +286,7 @@ export class AuthService {
     email: string,
     password: string,
     origin: string,
-  ) {
+  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
     if (!validateEmail(email))
       return E.left({
         message: INVALID_EMAIL,
@@ -297,6 +297,7 @@ export class AuthService {
       `auth.service registerUserWithMagicLink: ${email}, ${password}, ${origin}`,
     );
 
+    // make sure only one user is registered
     const existingUserCount = await this.usersService.getUsersCount();
     if (existingUserCount > 0) {
       return E.left({
@@ -308,6 +309,7 @@ export class AuthService {
       `auth.service registerUserWithMagicLink: existingUserCount: ${existingUserCount}`,
     );
 
+    // step 1: create user and token
     let user: AuthUser;
     const queriedUser = await this.usersService.findUserByEmail(email);
 
@@ -369,9 +371,86 @@ export class AuthService {
       });
     }
     // this.myLogger.debug(`Magic Link sent to ${email}`);
-    return E.right(<DeviceIdentifierToken>{
-      deviceIdentifier: generatedTokens.deviceIdentifier,
-    });
+    // return E.right(<DeviceIdentifierToken>{
+    //   deviceIdentifier: generatedTokens.deviceIdentifier,
+    // });
+
+    // step 2: verify token
+    const magicLinkIDTokens = new VerifyMagicDto();
+    magicLinkIDTokens.deviceIdentifier = generatedTokens.deviceIdentifier;
+    magicLinkIDTokens.token = generatedTokens.token;
+    const passwordlessTokens = await this.validatePasswordlessTokens(
+      magicLinkIDTokens,
+    );
+    if (O.isNone(passwordlessTokens))
+      return E.left({
+        message: INVALID_MAGIC_LINK_DATA,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    const foundUser = await this.usersService.findUserById(
+      passwordlessTokens.value.userUid,
+    );
+    if (O.isNone(foundUser))
+      return E.left({
+        message: USER_NOT_FOUND,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
+    /**
+     * * Check to see if entry for Magic-Link is present in the Account table for user
+     * * If user was created with another provider findUserById may return true
+     */
+    const profile = {
+      provider: 'magic',
+      id: foundUser.value.email,
+    };
+    const providerAccountExists = await this.checkIfProviderAccountExists(
+      foundUser.value,
+      profile,
+    );
+
+    if (O.isNone(providerAccountExists)) {
+      await this.usersService.createProviderAccount(
+        foundUser.value,
+        null,
+        null,
+        profile,
+      );
+    }
+
+    const currentTime = DateTime.now();
+    const expiresOnDateTime = DateTime.fromJSDate(
+      passwordlessTokens.value.expiresOn,
+    );
+    if (currentTime > expiresOnDateTime) {
+      return E.left({
+        message: MAGIC_LINK_EXPIRED,
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
+    const tokens = await this.generateAuthTokens(
+      passwordlessTokens.value.userUid,
+    );
+    if (E.isLeft(tokens)) {
+      return E.left({
+        message: tokens.left.message,
+        statusCode: tokens.left.statusCode,
+      });
+    }
+
+    const deletedPasswordlessToken =
+      await this.deleteMagicLinkVerificationTokens(passwordlessTokens.value);
+    if (E.isLeft(deletedPasswordlessToken)) {
+      // this.myLogger.debug(`verifyMagicLinkTokens: ${HttpStatus.NOT_FOUND}`);
+      return E.left({
+        message: deletedPasswordlessToken.left,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+    const updateUserResult = await this.usersService.updateUserLastLoggedOn(
+      passwordlessTokens.value.userUid,
+    );
+    return E.right(tokens.right);
   }
 
   /**

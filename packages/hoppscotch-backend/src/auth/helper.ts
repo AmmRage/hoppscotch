@@ -29,6 +29,7 @@ export enum AuthProvider {
  * @param res Express Response Object
  * @param authTokens Object containing the access and refresh tokens
  * @param redirect if true will redirect to provided URL else just send a 200 status code
+ * @param redirectUrl
  */
 export const authCookieHandler = (
   res: Response,

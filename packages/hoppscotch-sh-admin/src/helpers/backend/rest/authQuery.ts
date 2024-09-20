@@ -26,6 +26,8 @@ export default {
       email: email,
       password: password
     }),
+
+  //call verify
   signInWithEmailLink: (
     token: string | null,
     deviceIdentifier: string | null

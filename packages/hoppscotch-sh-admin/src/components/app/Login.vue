@@ -282,8 +282,9 @@ const initialRegisterByUsernamePassword = async () => {
   registerByUsernamePassword.value = true;
   try {
     await auth.initialRegisterByUsernamePassword(form.value.username, form.value.password);
-    // mode.value = 'email-sent';
+    mode.value = 'email-sent';
     setLocalConfig('emailForSignIn', form.value.username);
+    window.location.href = import.meta.env.VITE_ADMIN_URL
   } catch (e) {
     console.error(e);
     toast.error(t('state.email_signin_failure'));

@@ -150,13 +150,21 @@ const sendMagicLink = async (email: string) => {
   return res.data;
 };
 
+/**
+ * the function to register user by email and password
+ * @param email
+ * @param password
+ */
 const registerByEmailPassword = async (email: string, password: string) => {
   const res = await authQuery.registerEmailPassword(email, password);
-  if (!res.data?.deviceIdentifier) {
-    throw new Error('test: does not get device identifier');
-  }
-  setLocalConfig('deviceIdentifier', res.data.deviceIdentifier);
-  return res.data;
+  // if (!res.data?.deviceIdentifier) {
+  //   throw new Error('test: does not get device identifier');
+  // }
+  // setLocalConfig('deviceIdentifier', res.data.deviceIdentifier);
+
+  //show toast message with timeout and then navigate to start page
+
+  // return res.data;
 };
 
 export const auth = {
@@ -171,6 +179,7 @@ export const auth = {
   },
 
   signInWithEmail: (email: string) => sendMagicLink(email),
+
   initialRegisterByUsernamePassword: async (username: string, password: string) => registerByEmailPassword(username, password),
 
   isSignInWithEmailLink: (url: string) => {
@@ -197,6 +206,7 @@ export const auth = {
     }/auth/microsoft?redirect_uri=${import.meta.env.VITE_ADMIN_URL}`;
   },
 
+  //get token and call verify
   signInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);
     const searchParams = new URLSearchParams(urlObject.search);
