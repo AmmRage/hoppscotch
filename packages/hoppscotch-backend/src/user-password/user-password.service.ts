@@ -52,7 +52,7 @@ export class UserPasswordService {
    * @param password User's password
    * @returns Option of found User
    */
-  async changePassword(
+  async changePasswordByEmail(
     email: string,
     password: string,
   ): Promise<O.None | O.Some<boolean>> {
@@ -62,6 +62,35 @@ export class UserPasswordService {
     });
 
     return user ? O.some(true) : O.none;
+  }
+
+  /**
+   * update User's password by id
+   *
+   * @param userUid User's id
+   * @param newPassword
+   * @param oldPassword
+   * @returns Option of found User
+   */
+  async changePasswordByUserUid(
+    userUid: string,
+    newPassword: string,
+    oldPassword: string,
+  ): Promise<boolean> {
+    const user = await this.prisma.userPasswordViaEmailToken.findUnique({
+      where: { userUid: userUid },
+    });
+
+    if (user?.password !== oldPassword) {
+      return false;
+    }
+
+    const updatedResult = await this.prisma.userPasswordViaEmailToken.update({
+      where: { userUid },
+      data: { password: newPassword },
+    });
+
+    return !!updatedResult;
   }
 
   /**

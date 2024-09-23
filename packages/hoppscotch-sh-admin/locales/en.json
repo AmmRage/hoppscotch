@@ -328,6 +328,7 @@
     "invited_by": "Invited By",
     "invited_on": "Invited On",
     "invited_users": "Invited Users",
+    "change_password" : "Change Password",
     "invitee_email": "Invitee Email",
     "last_active_on": "Last Active",
     "load_info_error": "Unable to load user info",

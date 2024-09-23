@@ -29,6 +29,7 @@
             @delete-user="deleteUser"
             @make-admin="makeUserAdmin"
             @remove-admin="makeAdminToUser"
+            @change-password="makeChangeUserPassword"
             @update-user-name="(name: string) => (userName = name)"
             class="py-8 px-4"
           />
@@ -57,6 +58,11 @@
       @hide-modal="confirmAdminToUser = false"
       @resolve="makeAdminToUserMutation(adminToUserUID)"
     />
+
+    <UsersChangePasswordModal
+      v-if="confirmChangeUserPassword"
+      @change-password="makeChangeUserPasswordMutation(useUID, newPassword, oldPassword)"
+    />
   </div>
 </template>
 
@@ -70,7 +76,7 @@ import { useClientHandler } from '~/composables/useClientHandler';
 import {
   DemoteUsersByAdminDocument,
   MakeUsersAdminDocument,
-  RemoveUsersByAdminDocument,
+  RemoveUsersByAdminDocument, ChangeUserPasswordDocument,
   UserInfoDocument,
 } from '~/helpers/backend/graphql';
 import { handleUserDeletion } from '~/helpers/userManagement';
@@ -182,6 +188,41 @@ const makeAdminToUserMutation = async (id: string | null) => {
   }
   confirmAdminToUser.value = false;
   adminToUserUID.value = null;
+};
+
+
+// Change user password
+const changeUserPassword = useMutation(ChangeUserPasswordDocument);
+const confirmChangeUserPassword = ref(false);
+const useUID = ref<string | null>(null);
+const newPassword = ref<string | null>(null);
+const oldPassword = ref<string | null>(null);
+
+const makeChangeUserPassword = (id: string) => {
+  confirmChangeUserPassword.value = true;
+  useUID.value = id;
+};
+
+const makeChangeUserPasswordMutation = async (id: string, newPwd: string, oldPwd: string) => {
+  if (!id) {
+    confirmChangeUserPassword.value = false;
+    toast.error(`Failed to change password: ${id}`);
+    return;
+  }
+
+  const userUID = id;
+  const variables = {
+    userUID: userUID,
+    newPassword: newPwd,
+    oldPassword: oldPwd
+  };
+  const result = await changeUserPassword.executeMutation(variables);
+  if (result.error) {
+    toast.error(`error in changing password: ${result.error}`);
+  } else {
+    toast.success(`Password changed successfully`);
+  }
+  confirmChangeUserPassword.value = false;
 };
 
 // User Deletion

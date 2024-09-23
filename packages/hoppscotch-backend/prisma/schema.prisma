@@ -114,8 +114,8 @@ model User {
 
 model UserPasswordViaEmailToken {
   id                   String                @id @default(cuid())
-  userUid              String
-  email                String?               @unique
+  userUid              String                @unique
+  email                String                @unique
   token                String?
   password             String?
   createdAt            DateTime              @default(now()) @db.Timestamp(3)
