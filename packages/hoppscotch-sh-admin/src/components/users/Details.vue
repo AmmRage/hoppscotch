@@ -88,7 +88,7 @@
         filled
         outline
         class="mr-4"
-        @click="emit('change-password', user.uid)"
+        @click="emit('show-change-password', user.uid)"
       />
 
       <HoppButtonSecondary
@@ -137,7 +137,7 @@ const emit = defineEmits<{
   (event: 'make-admin', userID: string): void;
   (event: 'remove-admin', userID: string): void;
   (event: 'update-user-name', newName: string): void;
-  (event: 'change-password', newName: string): void;
+  (event: 'show-change-password', newName: string): void;
 }>();
 
 // Get Proper Date Formats

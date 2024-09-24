@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DateTime } from 'luxon';
+import * as _ from 'lodash';
 import * as O from 'fp-ts/Option';
 import * as E from 'fp-ts/Either';
 import * as TO from 'fp-ts/TaskOption';
@@ -76,13 +77,37 @@ export class UserPasswordService {
     userUid: string,
     newPassword: string,
     oldPassword: string,
-  ): Promise<boolean> {
+  ): Promise<E.Right<boolean> | E.Left<string>> {
+    if (_.isEmpty(newPassword) || _.isEmpty(oldPassword)) {
+      return E.left('Password cannot be empty');
+    }
+
+    if (newPassword === oldPassword) {
+      return E.left('New password cannot be same as old password');
+    }
+
+    if (newPassword.length < 6) {
+      return E.left('Password must be at least 6 characters long');
+    }
+
+    if (newPassword.length > 16) {
+      return E.left('Password must be at most 16 characters long');
+    }
+
+    if (newPassword.includes(' ')) {
+      return E.left('Password cannot contain spaces');
+    }
+
     const user = await this.prisma.userPasswordViaEmailToken.findUnique({
       where: { userUid: userUid },
     });
 
+    if (!user) {
+      return E.left('User not found');
+    }
+
     if (user?.password !== oldPassword) {
-      return false;
+      return E.left('Old password is incorrect');
     }
 
     const updatedResult = await this.prisma.userPasswordViaEmailToken.update({
@@ -90,7 +115,9 @@ export class UserPasswordService {
       data: { password: newPassword },
     });
 
-    return !!updatedResult;
+    if (updatedResult) {
+      return E.right(true);
+    }
   }
 
   /**

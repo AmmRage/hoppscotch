@@ -16,6 +16,7 @@ start the development server
 
 ```shell
 pnpm run start:dev
+pnpm run start:debug
 ```
 
 test Postgres connection

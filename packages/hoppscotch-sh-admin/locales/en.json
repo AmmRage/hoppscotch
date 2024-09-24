@@ -353,6 +353,9 @@
     "unnamed": "(Unnamed User)",
     "user_not_found": "User not found in the infra!!",
     "users": "Users",
-    "valid_email": "Please enter a valid email address"
+    "valid_email": "Please enter a valid email address",
+    "old_password": "Old Password",
+    "new_password": "New Password",
+    "repeat_new_password": "Repeat New Password"
   }
 }

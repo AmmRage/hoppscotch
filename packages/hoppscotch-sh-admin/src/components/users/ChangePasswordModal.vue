@@ -9,11 +9,13 @@
         v-model="oldPassword"
         :label="t('users.old_password')"
         input-styles="floating-input"
+        class="mb-12"
       />
 
       <HoppSmartInput
         v-model="newPassword"
         :label="t('users.new_password')"
+        class="mb-12"
         input-styles="floating-input"
       />
 
@@ -24,18 +26,18 @@
       />
     </template>
     <template #footer>
-      <span class="flex space-x-2">
-        <HoppButtonPrimary
-          :label="t('action.confirm')"
-          @click="emit('change-password', email)"
-        />
+      <div class="flex justify-end space-x-2 w-full">
         <HoppButtonSecondary
           :label="t('users.cancel')"
           outline
           filled
           @click="hideModal"
         />
-      </span>
+        <HoppButtonPrimary
+          :label="t('action.confirm')"
+          @click="emit('change-password', oldPassword, newPassword, repeatNewPassword)"
+        />
+      </div>
     </template>
   </HoppSmartModal>
 </template>
