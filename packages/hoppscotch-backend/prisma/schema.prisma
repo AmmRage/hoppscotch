@@ -186,6 +186,7 @@ model InvitedUsers {
   adminEmail   String
   inviteeEmail String   @unique
   invitedOn    DateTime @default(now()) @db.Timestamp(3)
+  inviteEmailStatus Boolean
 }
 
 model UserRequest {

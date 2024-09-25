@@ -17,6 +17,7 @@ import {
   MAGIC_LINK_EXPIRED,
   USER_NOT_FOUND,
   INVALID_REFRESH_TOKEN,
+  USER_ALREADY_INVITED,
 } from 'src/errors';
 import { validateEmail } from 'src/utils';
 import {
@@ -274,6 +275,25 @@ export class AuthService {
     });
   }
 
+  async IsUserInvited(email: string): Promise<boolean> {
+    let isUserInvited = false;
+    const alreadyInvitedUser = await this.prismaService.invitedUsers.findFirst({
+      where: {
+        inviteeEmail: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
+    });
+    if (alreadyInvitedUser != null) isUserInvited = true;
+    else isUserInvited = false;
+    if (isUserInvited) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   /**
    * register user if no user is present, else login user
    * @param email
@@ -284,11 +304,21 @@ export class AuthService {
     email: string,
     password: string,
     origin: string,
-  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+  ): Promise<E.Right<[AuthTokens, string]> | E.Left<RESTError>> {
     const existingUserCount = await this.usersService.getUsersCount();
-    if (existingUserCount > 0) {
-      return await this.verifyUserByUsernamePassword(email, password);
-    } else {
+    const user = await this.usersService.findUserByEmail(email);
+
+    const isUserRegistered = !O.isNone(user);
+    const isUserInvited = await this.IsUserInvited(email);
+    this.myLogger.debug(
+      `email: ${email}, password: ${password}, isUserInvited: ${isUserInvited}, isUserRegistered: ${isUserRegistered}, existingUserCount: ${existingUserCount}`,
+    );
+    if (isUserRegistered) {
+      return await this.verifyUserByEmailPassword(email, password);
+    } else if (existingUserCount > 0 && !isUserInvited) {
+      return E.right([null, 'not-invited']);
+    } else if (existingUserCount === 0 || isUserInvited) {
+      // if user is invited or no user is present in the system then register user
       return await this.registerUserWithMagicLink(email, password, origin);
     }
   }
@@ -305,7 +335,7 @@ export class AuthService {
     email: string,
     password: string,
     origin: string,
-  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+  ): Promise<E.Right<[AuthTokens, string]> | E.Left<RESTError>> {
     if (!validateEmail(email))
       return E.left({
         message: INVALID_EMAIL,
@@ -316,9 +346,10 @@ export class AuthService {
       `auth.service registerUserWithMagicLink: ${email}, ${password}, ${origin}`,
     );
 
+    const isUserInvited = this.IsUserInvited(email);
     // make sure only one user is registered
     const existingUserCount = await this.usersService.getUsersCount();
-    if (existingUserCount > 0) {
+    if (existingUserCount > 0 && !isUserInvited) {
       return E.left({
         message: 'Not allowed to register new user',
         statusCode: HttpStatus.FORBIDDEN,
@@ -470,7 +501,7 @@ export class AuthService {
     const updateUserResult = await this.usersService.updateUserLastLoggedOn(
       passwordlessTokens.value.userUid,
     );
-    return E.right(tokens.right);
+    return E.right([tokens.right, 'success']);
   }
 
   /**
@@ -574,15 +605,15 @@ export class AuthService {
 
   /**
    * Verify and authenticate user by username and password
-   * @param username
+   * @param email
    * @param password
    */
-  async verifyUserByUsernamePassword(
-    username: string,
+  async verifyUserByEmailPassword(
+    email: string,
     password: string,
-  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
+  ): Promise<E.Right<[AuthTokens, string]> | E.Left<RESTError>> {
     const result = await this.userPasswordService.verifyUsernameAndPassword(
-      username,
+      email,
       password,
     );
     if (!result)
@@ -591,21 +622,28 @@ export class AuthService {
         statusCode: HttpStatus.NOT_FOUND,
       });
 
-    const userUid = await this.usersService.findUserUidByEmail(username);
-    if (O.isNone(userUid))
+    const user = await this.usersService.findUserByEmail(email);
+    if (O.isNone(user))
       return E.left({
         message: USER_NOT_FOUND,
         statusCode: HttpStatus.NOT_FOUND,
       });
-    const tokens = await this.generateAuthTokens(userUid ? userUid.value : '');
+    const tokens = await this.generateAuthTokens(user ? user.value.uid : '');
+    this.myLogger.debug(`email: ${email}, tokens: ${JSON.stringify(tokens)}`);
     if (E.isLeft(tokens)) {
       return E.left({
         message: tokens.left.message,
         statusCode: tokens.left.statusCode,
       });
     }
+    let message = '';
+    if (user.value.isAdmin) {
+      message = 'success';
+    } else {
+      message = 'not-admin';
+    }
 
-    return E.right(tokens.right);
+    return E.right([tokens.right, message]);
   }
 
   /**

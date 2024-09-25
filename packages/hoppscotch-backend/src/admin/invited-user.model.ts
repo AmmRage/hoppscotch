@@ -21,4 +21,9 @@ export class InvitedUser {
     description: 'Date when the user invitation was sent',
   })
   invitedOn: Date;
+
+  @Field({
+    description: 'Invite email sending status',
+  })
+  inviteEmailStatus: boolean;
 }

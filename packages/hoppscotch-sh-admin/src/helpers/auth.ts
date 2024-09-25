@@ -155,7 +155,7 @@ const sendMagicLink = async (email: string) => {
  * @param email
  * @param password
  */
-const registerByEmailPassword = async (email: string, password: string) => {
+const registerByEmailPassword = async (email: string, password: string): Promise<string> => {
   const res = await authQuery.registerEmailPassword(email, password);
   // if (!res.data?.deviceIdentifier) {
   //   throw new Error('test: does not get device identifier');
@@ -165,6 +165,12 @@ const registerByEmailPassword = async (email: string, password: string) => {
   //show toast message with timeout and then navigate to start page
 
   // return res.data;
+
+  // console.log(res);
+  if (res.errors) {
+    throw new Error(res.errors[0].message);
+  }
+  return res.data?.message;
 };
 
 export const auth = {
@@ -184,8 +190,9 @@ export const auth = {
    * the function to register user by email and password or login if user already exists
    * @param username
    * @param password
+   * @returns message
    */
-  createOrLoginUserByEmailPassword: async (username: string, password: string) => registerByEmailPassword(username, password),
+  createOrLoginUserByEmailPassword: async (username: string, password: string): Promise<string> => registerByEmailPassword(username, password),
 
   isSignInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);

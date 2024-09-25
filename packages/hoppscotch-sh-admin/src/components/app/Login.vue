@@ -120,16 +120,43 @@
           </a>
         </div>
       </div>
+      <!--  email sent for invited user and new user after install and register first user  -->
       <div v-if="mode === 'email-sent'" class="flex flex-col px-4">
         <div class="flex flex-col items-center justify-center max-w-md">
           <icon-lucide-inbox class="w-6 h-6 text-accent" />
           <h3 class="my-2 text-lg text-center">
-            {{ t('state.magic_link_success') }} {{ form.email }}
+            {{ t('state.magic_link_success') }} {{ form.email ?? form.username }}
           </h3>
           <p class="text-center">
             {{ t('state.magic_link_success') }} {{ form.email }}.
             {{ t('state.magic_link_sign_in') }}
           </p>
+        </div>
+      </div>
+      <!--  after user not admin login  -->
+      <div v-if="mode === 'not-admin'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-file-warning class="w-6 h-6 text-amber-500" />
+          <h3 class="my-2 text-lg text-center ">
+            {{ t('state.not_admin') }}
+          </h3>
+<!--          <p class="text-center">-->
+<!--            {{ t('state.magic_link_success') }} {{ form.email }}.-->
+<!--            {{ t('state.magic_link_sign_in') }}-->
+<!--          </p>-->
+        </div>
+      </div>
+      <!--  when user try log in with email not invited  -->
+      <div v-if="mode === 'not-invited'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-x class="w-6 h-6 text-rose-600" />
+          <h3 class="my-2 text-lg text-center">
+            {{ t('state.not-invited') }}
+          </h3>
+<!--          <p class="text-center">-->
+<!--            {{ t('state.magic_link_success') }} {{ form.email }}.-->
+<!--            {{ t('state.magic_link_sign_in') }}-->
+<!--          </p>-->
         </div>
       </div>
     </div>
@@ -204,6 +231,8 @@ const privacyPolicyLink = import.meta.env.VITE_APP_PRIVACY_POLICY_LINK;
 
 const form = ref({
   email: '',
+  username: '',
+  password: '',
 });
 const fetching = ref(false);
 const error = ref(false);
@@ -281,10 +310,18 @@ const signInWithEmail = async () => {
 const initialRegisterByUsernamePassword = async () => {
   registerByUsernamePassword.value = true;
   try {
-    await auth.createOrLoginUserByEmailPassword(form.value.username, form.value.password);
-    mode.value = 'email-sent';
-    setLocalConfig('emailForSignIn', form.value.username);
-    window.location.href = import.meta.env.VITE_ADMIN_URL
+    const message = await auth.createOrLoginUserByEmailPassword(form.value.username, form.value.password);
+    if (message === 'not-admin') {
+      mode.value = 'not-admin';
+    }
+    else if (message === 'not-invited') {
+      mode.value = 'not-invited';
+    }
+    else {
+      mode.value = 'email-sent';
+      setLocalConfig('emailForSignIn', form.value.username);
+      window.location.href = import.meta.env.VITE_ADMIN_URL
+    }
   } catch (e) {
     console.error(e);
     toast.error(t('state.email_signin_failure'));

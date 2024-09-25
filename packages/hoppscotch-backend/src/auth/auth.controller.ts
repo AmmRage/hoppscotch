@@ -8,6 +8,7 @@ import {
   Res,
   UseGuards,
   UseInterceptors,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInMagicDto } from './dto/signin-magic.dto';
@@ -19,7 +20,11 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GqlUser } from 'src/decorators/gql-user.decorator';
 import { AuthUser } from 'src/types/AuthUser';
 import { RTCookie } from 'src/decorators/rt-cookie.decorator';
-import { AuthProvider, authCookieHandler, authProviderCheck } from './helper';
+import {
+  AuthProvider,
+  authCookieHandler,
+  authProviderCheck,
+} from './helper';
 import { GoogleSSOGuard } from './guards/google-sso.guard';
 import { GithubSSOGuard } from './guards/github-sso.guard';
 import { MicrosoftSSOGuard } from './guards/microsoft-sso-.guard';
@@ -109,13 +114,25 @@ export class AuthController {
       });
     }
     this.myLogger.log('password format passed');
-    const authTokens = await this.authService.registerOrLogin(
+    const authResult = await this.authService.registerOrLogin(
       authData.email,
       authData.password,
       'admin',
     );
-    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    authCookieHandler(res, authTokens.right, false, null);
+    if (E.isLeft(authResult)) throwHTTPErr(authResult.left);
+    this.myLogger.debug('authResult: ' + JSON.stringify(authResult));
+    if (
+      authResult.right[1] === 'not-admin' ||
+      authResult.right[1] === 'not-invited'
+    ) {
+      this.myLogger.debug(
+        'signInPasswordViaEmailToken: not-admin or not-invited',
+      );
+      return res.status(HttpStatus.OK).json({
+        message: authResult.right[1],
+      });
+    }
+    authCookieHandler(res, authResult.right[0], false, null);
   }
 
   /**
