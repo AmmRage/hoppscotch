@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DateTime } from 'luxon';
 import * as _ from 'lodash';
@@ -15,6 +15,8 @@ import { PubSubService } from 'src/pubsub/pubsub.service';
 
 @Injectable()
 export class UserPasswordService {
+  private myLogger = new Logger('UserPasswordService');
+
   constructor(
     private prisma: PrismaService,
     private readonly pubsub: PubSubService,
@@ -107,6 +109,9 @@ export class UserPasswordService {
     }
 
     if (user?.password !== oldPassword) {
+      this.myLogger.error(
+        `Old password ${oldPassword}, user password ${user?.password}`,
+      );
       return E.left('Old password is incorrect');
     }
 

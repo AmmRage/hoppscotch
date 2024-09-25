@@ -205,18 +205,18 @@ const showChangeUserPasswordModal = (id: string) => {
   userUID.value = id;
 };
 
-const changeUserPasswordMutation = async (newPwd: string, oldPwd: string, repeatOldPwd: string) => {
-  if (oldPwd !== repeatOldPwd) {
+const changeUserPasswordMutation = async (oldPwd: string, newPwd: string, repeatNewPwd: string) => {
+  if (newPwd !== repeatNewPwd) {
     toast.error('Old password does not match');
     return;
   }
 
-  if (isEmpty(newPwd) || isEmpty(oldPwd)) {
+  if (isEmpty(oldPwd) || isEmpty(newPwd) || isEmpty(repeatNewPwd) || !oldPwd || !newPwd || !repeatNewPwd || oldPwd === '' || newPwd === '' || repeatNewPwd === '') {
     toast.error('Password cannot be empty');
     return;
   }
 
-  if (newPwd === oldPwd) {
+  if (oldPwd === newPwd) {
     toast.error('New password cannot be same as old password');
     return;
   }
@@ -248,7 +248,6 @@ const changeUserPasswordMutation = async (newPwd: string, oldPwd: string, repeat
     oldPassword: oldPwd
   };
   const result = await changeUserPassword.executeMutation(variables);
-  console.log('changeUserPasswordMutation', result);
   if (result.error) {
     toast.error(`error in changing password: ${result.error}`);
   } else {

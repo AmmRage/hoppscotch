@@ -7,22 +7,28 @@
     <template #body>
       <HoppSmartInput
         v-model="oldPassword"
+        type="password"
         :label="t('users.old_password')"
         input-styles="floating-input"
         class="mb-12"
+        required
       />
 
       <HoppSmartInput
         v-model="newPassword"
+        type="password"
         :label="t('users.new_password')"
         class="mb-12"
         input-styles="floating-input"
+        required
       />
 
       <HoppSmartInput
         v-model="repeatNewPassword"
+        type="password"
         :label="t('users.repeat_new_password')"
         input-styles="floating-input"
+        required
       />
     </template>
     <template #footer>
