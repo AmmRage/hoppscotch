@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DateTime } from 'luxon';
-import * as _ from 'lodash';
 import * as O from 'fp-ts/Option';
 import * as E from 'fp-ts/Either';
 import * as TO from 'fp-ts/TaskOption';
@@ -80,7 +79,16 @@ export class UserPasswordService {
     newPassword: string,
     oldPassword: string,
   ): Promise<E.Right<boolean> | E.Left<string>> {
-    if (_.isEmpty(newPassword) || _.isEmpty(oldPassword)) {
+    if (
+      !newPassword ||
+      newPassword === '' ||
+      newPassword === null ||
+      newPassword === undefined ||
+      !oldPassword ||
+      oldPassword === '' ||
+      oldPassword === null ||
+      oldPassword === undefined
+    ) {
       return E.left('Password cannot be empty');
     }
 
@@ -157,11 +165,16 @@ export class UserPasswordService {
   async verifyUsernameAndPassword(
     email: string,
     password: string,
-  ): Promise<O.None | O.Some<boolean>> {
+  ): Promise<[boolean, string]> {
     const user = await this.prisma.userPasswordViaEmailToken.findUnique({
       where: { email },
     });
-
-    return user?.password === password ? O.some(true) : O.none;
+    if (!user) {
+      return [false, 'User not found'];
+    }
+    if (user?.password !== password) {
+      return [false, 'Password is incorrect'];
+    }
+    return [true, 'success'];
   }
 }

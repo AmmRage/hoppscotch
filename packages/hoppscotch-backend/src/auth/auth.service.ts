@@ -314,7 +314,7 @@ export class AuthService {
       `email: ${email}, password: ${password}, isUserInvited: ${isUserInvited}, isUserRegistered: ${isUserRegistered}, existingUserCount: ${existingUserCount}`,
     );
     if (isUserRegistered) {
-      return await this.verifyUserByEmailPassword(email, password);
+      return await this.adminVerifyUserByEmailPassword(email, password);
     } else if (existingUserCount > 0 && !isUserInvited) {
       return E.right([null, 'not-invited']);
     } else if (existingUserCount === 0 || isUserInvited) {
@@ -604,23 +604,25 @@ export class AuthService {
   }
 
   /**
-   * Verify and authenticate user by username and password
+   * Verify and authenticate user by username and password for admin site
    * @param email
    * @param password
    */
-  async verifyUserByEmailPassword(
+  async adminVerifyUserByEmailPassword(
     email: string,
     password: string,
   ): Promise<E.Right<[AuthTokens, string]> | E.Left<RESTError>> {
-    const result = await this.userPasswordService.verifyUsernameAndPassword(
-      email,
-      password,
+    const [result, verifyMessage] =
+      await this.userPasswordService.verifyUsernameAndPassword(email, password);
+    this.myLogger.debug(
+      `verifyUsernameAndPassword result: ${result}, verifyMessage: ${verifyMessage}`,
     );
-    if (!result)
+    if (result === false) {
       return E.left({
-        message: 'Invalid username or password',
-        statusCode: HttpStatus.NOT_FOUND,
+        message: verifyMessage,
+        statusCode: HttpStatus.OK,
       });
+    }
 
     const user = await this.usersService.findUserByEmail(email);
     if (O.isNone(user))
@@ -638,12 +640,49 @@ export class AuthService {
     }
     let message = '';
     if (user.value.isAdmin) {
-      message = 'success';
+      message = 'admin-logged-in';
     } else {
       message = 'not-admin';
     }
 
     return E.right([tokens.right, message]);
+  }
+
+  /**
+   * Verify and authenticate user by username and password for application site
+   * @param email
+   * @param password
+   */
+  async appVerifyUserByEmailPassword(
+    email: string,
+    password: string,
+  ): Promise<E.Right<[AuthTokens, string]> | E.Left<RESTError>> {
+    const [result, verifyMessage] =
+      await this.userPasswordService.verifyUsernameAndPassword(email, password);
+    this.myLogger.debug(
+      `verifyUsernameAndPassword result: ${result}, verifyMessage: ${verifyMessage}`,
+    );
+    if (result === false) {
+      return E.left({
+        message: verifyMessage,
+        statusCode: HttpStatus.OK,
+      });
+    }
+
+    const user = await this.usersService.findUserByEmail(email);
+    if (O.isNone(user))
+      return E.left({
+        message: 'encounter error',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    const tokens = await this.generateAuthTokens(user ? user.value.uid : '');
+    if (E.isLeft(tokens)) {
+      return E.left({
+        message: tokens.left.message,
+        statusCode: tokens.left.statusCode,
+      });
+    }
+    return E.right([tokens.right, 'login-success']);
   }
 
   /**

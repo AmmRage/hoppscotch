@@ -159,6 +159,15 @@
 <!--          </p>-->
         </div>
       </div>
+      <!--   admin logged in   -->
+      <div v-if="mode === 'admin-logged-in'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-crown class="w-6 h-6 text-yellow-400" />
+          <h3 class="my-2 text-lg text-center">
+            {{ t('state.admin-logged-in') }}
+          </h3>
+        </div>
+      </div>
     </div>
 
     <section class="mt-16">
@@ -311,11 +320,17 @@ const initialRegisterByUsernamePassword = async () => {
   registerByUsernamePassword.value = true;
   try {
     const message = await auth.createOrLoginUserByEmailPassword(form.value.username, form.value.password);
+    console.log(`login message: ${message}`);
     if (message === 'not-admin') {
       mode.value = 'not-admin';
     }
     else if (message === 'not-invited') {
       mode.value = 'not-invited';
+    }
+    else if (message === 'admin-logged-in') {
+      mode.value = 'admin-logged-in';
+      setLocalConfig('emailForSignIn', form.value.username);
+      window.location.href = import.meta.env.VITE_ADMIN_URL
     }
     else {
       mode.value = 'email-sent';

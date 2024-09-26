@@ -178,6 +178,11 @@ export type AuthPlatformDef = {
    */
   signInWithEmail: (email: string) => Promise<void>
 
+  signInWithUsernamePassword: (
+    username: string,
+    password: string
+  ) => Promise<void>
+
   /**
    * Check whether a given link is a valid sign in with email, magic link response url.
    * (i.e, a URL that COULD be from a magic link email)

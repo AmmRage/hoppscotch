@@ -37,6 +37,7 @@
             @click="doAdditionalLoginItemClickAction(loginItem)"
           />
         </div>
+        <!-- email shared token login -->
         <form
           v-if="mode === 'email'"
           class="flex flex-col space-y-2"
@@ -56,6 +57,47 @@
             :label="`${t('auth.send_magic_link')}`"
           />
         </form>
+
+        <!-- username and password login -->
+        <form
+          v-if="mode === 'user'"
+          class="flex flex-col space-y-2"
+          @submit.prevent="signInWithUsernamePassword"
+        >
+          <HoppSmartInput
+            v-model="form.username"
+            type="email"
+            placeholder=" "
+            :label="t('auth.username')"
+            input-styles="floating-input"
+          />
+
+          <HoppSmartInput
+            v-model="form.password"
+            type="password"
+            placeholder=" "
+            :label="t('auth.password')"
+            input-styles="floating-input"
+          />
+
+          <HoppButtonPrimary
+            :loading="signingInWithUsernamePassword"
+            type="submit"
+            :label="`${t('auth.login')}`"
+          />
+        </form>
+
+        <!-- login success -->
+        <div v-if="mode === 'login-success'" class="flex flex-col px-4">
+          <div class="flex max-w-md flex-col items-center justify-center">
+            <icon-lucide-inbox class="h-6 w-6 text-accent" />
+            <h3 class="my-2 text-center text-lg">
+              {{ t("auth.login_success") }}
+            </h3>
+          </div>
+        </div>
+
+        <!-- email -->
         <div v-if="mode === 'email-sent'" class="flex flex-col px-4">
           <div class="flex max-w-md flex-col items-center justify-center">
             <icon-lucide-inbox class="h-6 w-6 text-accent" />
@@ -115,6 +157,24 @@
           @click="hideModal"
         />
       </div>
+
+      <!-- login success -->
+      <div
+        v-if="mode === 'login-success'"
+        class="flex flex-1 justify-end text-secondaryLight"
+      >
+        <!-- <HoppSmartAnchor
+          class="link"
+          :label="t('auth.re_enter_email')"
+          :icon="IconArrowLeft"
+          @click="mode = 'email'"
+        /> -->
+        <HoppSmartAnchor
+          class="link"
+          :label="`${t('modal.confirm')}`"
+          @click="hideModal"
+        />
+      </div>
     </template>
   </HoppSmartModal>
 </template>
@@ -132,6 +192,7 @@ import IconEmail from "~icons/auth/email"
 import IconGithub from "~icons/auth/github"
 import IconGoogle from "~icons/auth/google"
 import IconMicrosoft from "~icons/auth/microsoft"
+import IconUser from "~icons/auth/user"
 import IconArrowLeft from "~icons/lucide/arrow-left"
 
 import { useService } from "dioc/vue"
@@ -152,6 +213,8 @@ const persistenceService = useService(PersistenceService)
 
 const form = {
   email: "",
+  username: "",
+  password: "",
 }
 
 const isLoadingAllowedAuthProviders = ref(true)
@@ -160,6 +223,7 @@ const signingInWithGoogle = ref(false)
 const signingInWithGitHub = ref(false)
 const signingInWithMicrosoft = ref(false)
 const signingInWithEmail = ref(false)
+const signingInWithUsernamePassword = ref(false)
 const mode = ref("sign-in")
 
 const tosLink = import.meta.env.VITE_APP_TOS_LINK
@@ -197,9 +261,10 @@ onMounted(async () => {
   }
 
   // setup the normal auth providers
-  const enabledAuthProviders = authProvidersAvailable.filter((provider) =>
-    res.right.includes(provider.id)
-  )
+  const enabledAuthProviders = authProvidersAvailable.filter((provider) => {
+    console.log(`provider: ${JSON.stringify(provider)}`)
+    return res.right.includes(provider.id)
+  })
   allowedAuthProviders = enabledAuthProviders
 
   // setup the additional login items
@@ -330,6 +395,37 @@ const signInWithEmail = async () => {
     })
 }
 
+const signInWithUsernamePassword = async () => {
+  signingInWithUsernamePassword.value = true
+
+  await platform.auth
+    .signInWithUsernamePassword(form.username, form.password)
+    .then((response: any) => {
+      console.log("response: ", response)
+      if (response.isSuccess) {
+        toast.success("login success")
+      } else {
+        toast.error(response.message)
+      }
+
+      mode.value = "login-success"
+      persistenceService.setLocalConfig("emailForSignIn", form.username)
+
+      setTimeout(() => {
+        hideModal()
+        document.location.href = "/"
+      }, 2000)
+    })
+    .catch((e) => {
+      console.error(e)
+      toast.error(e.message)
+      signingInWithUsernamePassword.value = false
+    })
+    .finally(() => {
+      signingInWithUsernamePassword.value = false
+    })
+}
+
 const authProvidersAvailable: AuthProviderItem[] = [
   {
     id: "GITHUB",
@@ -368,6 +464,15 @@ const authProvidersAvailable: AuthProviderItem[] = [
       mode.value = "email"
     },
     isLoading: signingInWithEmail,
+  },
+  {
+    id: "USER",
+    icon: IconUser,
+    label: t("auth.continue_with_username_password"),
+    action: () => {
+      mode.value = "user"
+    },
+    isLoading: signingInWithUsernamePassword,
   },
 ]
 

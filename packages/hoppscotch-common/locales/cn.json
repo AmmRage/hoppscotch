@@ -113,6 +113,8 @@
     "continue_with_google": "使用 Google 登录",
     "continue_with_microsoft": "使用 Microsoft 登录",
     "email": "电子邮箱地址",
+    "username": "用户名",
+    "password": "密码",
     "logged_out": "登出",
     "login": "登录",
     "login_success": "登录成功",

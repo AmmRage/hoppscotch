@@ -20,11 +20,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GqlUser } from 'src/decorators/gql-user.decorator';
 import { AuthUser } from 'src/types/AuthUser';
 import { RTCookie } from 'src/decorators/rt-cookie.decorator';
-import {
-  AuthProvider,
-  authCookieHandler,
-  authProviderCheck,
-} from './helper';
+import { AuthProvider, authCookieHandler, authProviderCheck } from './helper';
 import { GoogleSSOGuard } from './guards/google-sso.guard';
 import { GithubSSOGuard } from './guards/github-sso.guard';
 import { MicrosoftSSOGuard } from './guards/microsoft-sso-.guard';
@@ -82,6 +78,8 @@ export class AuthController {
   /**
    ** Route to register username and password function, built on initiating magic-link auth for a users email
    * step 1: use existing email based logic to generate user info
+   * step 2: if user not exist, create user with email and password. otherwise login user and return
+   * this api is used for admin registration and login
    */
   @Post('register-email-password')
   async signInPasswordViaEmailToken(
@@ -132,20 +130,29 @@ export class AuthController {
         message: authResult.right[1],
       });
     }
-    authCookieHandler(res, authResult.right[0], false, null);
+    authCookieHandler(res, authResult.right[0], false, null, {
+      message: authResult.right[1],
+    });
   }
 
   /**
    ** Route to verify and sign in a valid user via magic-link
    */
   @Post('verify-email-password')
-  async verifyPasswordViaEmailToken(
+  async verifyEmailAndPassword(
     @Body() data: VerifyPasswordDto,
     @Res() res: Response,
   ) {
-    const authTokens = await this.authService.verifyPasswordTokens(data);
-    if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    authCookieHandler(res, authTokens.right, false, null);
+    // console.debug(`verifyEmailAndPassword: ${JSON.stringify(data)}`);
+    const verifyResult = await this.authService.appVerifyUserByEmailPassword(
+      data.email,
+      data.password,
+    );
+    if (E.isLeft(verifyResult)) throwHTTPErr(verifyResult.left);
+    authCookieHandler(res, verifyResult.right[0], false, null, {
+      isSuccess: true,
+      message: verifyResult.right[1],
+    });
   }
 
   @Post('verify')
