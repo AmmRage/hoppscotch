@@ -54,7 +54,7 @@
         <HoppSmartItem
           v-if="allowedAuthProviders.includes('EMAIL')"
           :icon="IconUserPlus"
-          label="Create Initial User"
+          label="Continue with username password"
           @click="mode = 'initial'"
         />
       </div>
@@ -77,6 +77,32 @@
           :label="t('state.send_magic_link')"
         />
       </form>
+
+      <form
+        v-if="mode === 'initial'"
+        class="flex flex-col space-y-4"
+        @submit.prevent="initialRegisterByUsernamePassword"
+      >
+        <HoppSmartInput
+          v-model="form.username"
+          type="initial"
+          placeholder="your email as username"
+          input-styles="floating-input"
+        />
+
+        <HoppSmartInput
+          v-model="form.password"
+          type="password"
+          placeholder="password"
+          input-styles="floating-input"
+        />
+
+        <HoppButtonPrimary
+          :loading="registerByUsernamePassword"
+          type="submit"
+          label="Register"
+        />
+      </form>
       <div v-if="!allowedAuthProviders">
         <p>{{ t('state.require_auth_provider') }}</p>
         <p>{{ t('state.configure_auth') }}</p>
@@ -94,16 +120,52 @@
           </a>
         </div>
       </div>
+      <!--  email sent for invited user and new user after install and register first user  -->
       <div v-if="mode === 'email-sent'" class="flex flex-col px-4">
         <div class="flex flex-col items-center justify-center max-w-md">
           <icon-lucide-inbox class="w-6 h-6 text-accent" />
           <h3 class="my-2 text-lg text-center">
-            {{ t('state.magic_link_success') }} {{ form.email }}
+            {{ t('state.magic_link_success') }} {{ form.email ?? form.username }}
           </h3>
           <p class="text-center">
             {{ t('state.magic_link_success') }} {{ form.email }}.
             {{ t('state.magic_link_sign_in') }}
           </p>
+        </div>
+      </div>
+      <!--  after user not admin login  -->
+      <div v-if="mode === 'not-admin'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-file-warning class="w-6 h-6 text-amber-500" />
+          <h3 class="my-2 text-lg text-center ">
+            {{ t('state.not_admin') }}
+          </h3>
+<!--          <p class="text-center">-->
+<!--            {{ t('state.magic_link_success') }} {{ form.email }}.-->
+<!--            {{ t('state.magic_link_sign_in') }}-->
+<!--          </p>-->
+        </div>
+      </div>
+      <!--  when user try log in with email not invited  -->
+      <div v-if="mode === 'not-invited'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-x class="w-6 h-6 text-rose-600" />
+          <h3 class="my-2 text-lg text-center">
+            {{ t('state.not-invited') }}
+          </h3>
+<!--          <p class="text-center">-->
+<!--            {{ t('state.magic_link_success') }} {{ form.email }}.-->
+<!--            {{ t('state.magic_link_sign_in') }}-->
+<!--          </p>-->
+        </div>
+      </div>
+      <!--   admin logged in   -->
+      <div v-if="mode === 'admin-logged-in'" class="flex flex-col px-4">
+        <div class="flex flex-col items-center justify-center max-w-md">
+          <icon-lucide-crown class="w-6 h-6 text-yellow-400" />
+          <h3 class="my-2 text-lg text-center">
+            {{ t('state.admin-logged-in') }}
+          </h3>
         </div>
       </div>
     </div>
@@ -178,6 +240,8 @@ const privacyPolicyLink = import.meta.env.VITE_APP_PRIVACY_POLICY_LINK;
 
 const form = ref({
   email: '',
+  username: '',
+  password: '',
 });
 const fetching = ref(false);
 const error = ref(false);
@@ -185,6 +249,7 @@ const signingInWithGoogle = ref(false);
 const signingInWithGitHub = ref(false);
 const signingInWithMicrosoft = ref(false);
 const signingInWithEmail = ref(false);
+const registerByUsernamePassword = ref(false);
 const mode = ref('sign-in');
 const nonAdminUser = ref(false);
 
@@ -248,6 +313,35 @@ const signInWithEmail = async () => {
     toast.error(t('state.email_signin_failure'));
   }
   signingInWithEmail.value = false;
+};
+
+
+const initialRegisterByUsernamePassword = async () => {
+  registerByUsernamePassword.value = true;
+  try {
+    const message = await auth.createOrLoginUserByEmailPassword(form.value.username, form.value.password);
+    console.log(`login message: ${message}`);
+    if (message === 'not-admin') {
+      mode.value = 'not-admin';
+    }
+    else if (message === 'not-invited') {
+      mode.value = 'not-invited';
+    }
+    else if (message === 'admin-logged-in') {
+      mode.value = 'admin-logged-in';
+      setLocalConfig('emailForSignIn', form.value.username);
+      window.location.href = import.meta.env.VITE_ADMIN_URL
+    }
+    else {
+      mode.value = 'email-sent';
+      setLocalConfig('emailForSignIn', form.value.username);
+      window.location.href = import.meta.env.VITE_ADMIN_URL
+    }
+  } catch (e) {
+    console.error(e);
+    toast.error(t('state.email_signin_failure'));
+  }
+  registerByUsernamePassword.value = false;
 };
 
 const getAllowedAuthProviders = async () => {

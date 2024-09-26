@@ -150,6 +150,29 @@ const sendMagicLink = async (email: string) => {
   return res.data;
 };
 
+/**
+ * the function to register user by email and password
+ * @param email
+ * @param password
+ */
+const registerByEmailPassword = async (email: string, password: string): Promise<string> => {
+  const res = await authQuery.registerEmailPassword(email, password);
+  // if (!res.data?.deviceIdentifier) {
+  //   throw new Error('test: does not get device identifier');
+  // }
+  // setLocalConfig('deviceIdentifier', res.data.deviceIdentifier);
+
+  //show toast message with timeout and then navigate to start page
+
+  // return res.data;
+
+  // console.log(res);
+  if (res.errors) {
+    throw new Error(res.errors[0].message);
+  }
+  return res.data?.message;
+};
+
 export const auth = {
   getCurrentUserStream: () => currentUser$,
   getAuthEventsStream: () => authEvents$,
@@ -162,6 +185,14 @@ export const auth = {
   },
 
   signInWithEmail: (email: string) => sendMagicLink(email),
+
+  /**
+   * the function to register user by email and password or login if user already exists
+   * @param username
+   * @param password
+   * @returns message
+   */
+  createOrLoginUserByEmailPassword: async (username: string, password: string): Promise<string> => registerByEmailPassword(username, password),
 
   isSignInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);
@@ -187,6 +218,7 @@ export const auth = {
     }/auth/microsoft?redirect_uri=${import.meta.env.VITE_ADMIN_URL}`;
   },
 
+  //get token and call verify
   signInWithEmailLink: (url: string) => {
     const urlObject = new URL(url);
     const searchParams = new URLSearchParams(urlObject.search);

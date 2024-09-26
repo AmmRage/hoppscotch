@@ -44,6 +44,7 @@ const AuthProviderConfigurations = {
         InfraConfigEnum.MAILER_ADDRESS_FROM,
       ]
     : [InfraConfigEnum.MAILER_SMTP_URL, InfraConfigEnum.MAILER_ADDRESS_FROM],
+  [AuthProvider.USER]: [],
 };
 
 /**

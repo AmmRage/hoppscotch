@@ -74,6 +74,19 @@ export class UserService {
     return O.some(user);
   }
 
+  async findUserUidByEmail(email: string): Promise<O.None | O.Some<string>> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
+    });
+    if (!user) return O.none;
+    return O.some(user.uid);
+  }
+
   /**
    * Find User with given ID
    *

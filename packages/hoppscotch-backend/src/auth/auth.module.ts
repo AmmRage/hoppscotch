@@ -17,11 +17,13 @@ import {
   loadInfraConfiguration,
 } from 'src/infra-config/helper';
 import { InfraConfigModule } from 'src/infra-config/infra-config.module';
+import { UserPasswordModule } from 'src/user-password/user-password.module';
 
 @Module({
   imports: [
     PrismaModule,
     UserModule,
+    UserPasswordModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -144,6 +144,7 @@ const headings = [
   { key: 'inviteeEmail', label: t('users.invitee_email') },
   { key: 'adminEmail', label: t('users.invited_by') },
   { key: 'invitedOn', label: t('users.invited_on') },
+  { key: 'inviteEmailStatus', label: t('users.invite_email_status') },
   { key: 'action', label: 'Action' },
 ];
 

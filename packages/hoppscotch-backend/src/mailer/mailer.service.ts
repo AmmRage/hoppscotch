@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, Logger } from '@nestjs/common';
 import {
   AdminUserInvitationMailDescription,
   MailDescription,
@@ -11,6 +11,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailerService {
+  private myLogger = new Logger('AuthService');
+
   constructor(
     @Optional() private readonly nestMailerService: NestMailerService,
     private readonly configService: ConfigService,
@@ -62,7 +64,7 @@ export class MailerService {
   }
 
   /**
-   *
+   * Sends an email to the given email address given a mail description
    * @param to Receiver's email id
    * @param mailDesc Details of email to be sent for user invitation
    * @returns Response if email was send successfully or not
@@ -70,7 +72,7 @@ export class MailerService {
   async sendUserInvitationEmail(
     to: string,
     mailDesc: AdminUserInvitationMailDescription,
-  ) {
+  ): Promise<boolean> {
     if (this.configService.get('INFRA.MAILER_SMTP_ENABLE') !== 'true') return;
 
     try {
@@ -80,10 +82,11 @@ export class MailerService {
         subject: this.resolveSubjectForMailDesc(mailDesc),
         context: mailDesc.variables,
       });
-      return res;
+      this.myLogger.debug('Email sent successfully:', res);
+      return true;
     } catch (error) {
-      console.log('Error from sendUserInvitationEmail:', error);
-      return throwErr(EMAIL_FAILED);
+      this.myLogger.error('Error from sendUserInvitationEmail:', error);
+      return false;
     }
   }
 }

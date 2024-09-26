@@ -204,6 +204,9 @@
     "logout": "Logout",
     "magic_link_sign_in": "Click on the link to sign in.",
     "magic_link_success": "We sent a magic link to",
+    "not_admin": "You are not an admin",
+    "not-invited": "You are not invited",
+    "admin-logged-in": "Admin is logged in",
     "microsoft_signin_failure": "Failed to login with Microsoft",
     "newsletter_failure": "Unable to update newsletter settings",
     "non_admin_logged_in": "Logged in as non admin user.",
@@ -270,7 +273,7 @@
     "empty_name": "Team name cannot be empty!!",
     "error": "Something went wrong. Please try again later.",
     "id": "Workspace ID",
-    "invited_email": "Invitee Email",
+    "invited_email": "Already Invited Email",
     "invited_on": "Invited On",
     "invites": "Invites",
     "load_info_error": "Unable to load Workspace info",
@@ -327,7 +330,9 @@
     "invite_user": "Invite User",
     "invited_by": "Invited By",
     "invited_on": "Invited On",
+    "invite_email_status": "Invite Email Status",
     "invited_users": "Invited Users",
+    "change_password" : "Change Password",
     "invitee_email": "Invitee Email",
     "last_active_on": "Last Active",
     "load_info_error": "Unable to load user info",
@@ -335,6 +340,7 @@
     "make_admin": "Make Admin",
     "name": "Name",
     "new_user_added": "New User Added",
+    "invitation_sent": "Invitation Sent",
     "no_invite": "No pending invites found",
     "no_shared_requests": "No shared requests created by the user",
     "no_users": "No users found",
@@ -352,6 +358,9 @@
     "unnamed": "(Unnamed User)",
     "user_not_found": "User not found in the infra!!",
     "users": "Users",
-    "valid_email": "Please enter a valid email address"
+    "valid_email": "Please enter a valid email address",
+    "old_password": "Old Password",
+    "new_password": "New Password",
+    "repeat_new_password": "Repeat New Password"
   }
 }

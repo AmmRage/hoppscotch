@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { PubSubService } from '../pubsub/pubsub.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,6 +34,8 @@ import { UserDeletionResult } from 'src/user/user.model';
 
 @Injectable()
 export class AdminService {
+  private myLogger = new Logger('AdminService');
+
   constructor(
     private readonly userService: UserService,
     private readonly teamService: TeamService,
@@ -104,16 +106,27 @@ export class AdminService {
     });
     if (alreadyInvitedUser != null) return E.left(USER_ALREADY_INVITED);
 
+    let inviteEmailStatus = false;
     try {
-      await this.mailerService.sendUserInvitationEmail(inviteeEmail, {
-        template: 'user-invitation',
-        variables: {
-          inviteeEmail: inviteeEmail,
-          magicLink: `${this.configService.get('VITE_BASE_URL')}`,
+      const result = await this.mailerService.sendUserInvitationEmail(
+        inviteeEmail,
+        {
+          template: 'user-invitation',
+          variables: {
+            inviteeEmail: inviteeEmail,
+            magicLink: `${this.configService.get('VITE_BASE_URL')}`,
+          },
         },
-      });
+      );
+      inviteEmailStatus = result;
     } catch (e) {
-      return E.left(EMAIL_FAILED);
+      // email don't have to be sent for the user to be invited as the user can sign up using the magic link
+      // whether the email is sent or not, the user will be able to sign up by the specified email
+      // return E.left(EMAIL_FAILED);
+      this.myLogger.error(
+        `Error in call service mailerService.sendUserInvitationEmail to ${inviteeEmail}: ${e}`,
+      );
+      inviteEmailStatus = false;
     }
 
     // Add invitee email to the list of invited users by admin
@@ -122,6 +135,8 @@ export class AdminService {
         adminUid: adminUID,
         adminEmail: adminEmail,
         inviteeEmail: inviteeEmail,
+        invitedOn: new Date(),
+        inviteEmailStatus: inviteEmailStatus,
       },
     });
 
@@ -130,6 +145,7 @@ export class AdminService {
       adminUid: dbInvitedUser.adminUid,
       inviteeEmail: dbInvitedUser.inviteeEmail,
       invitedOn: dbInvitedUser.invitedOn,
+      inviteEmailStatus: dbInvitedUser.inviteEmailStatus,
     };
 
     // Publish invited user subscription
@@ -464,7 +480,7 @@ export class AdminService {
     });
 
     const nonAdminUsers = allUsersList.filter((user) => !user.isAdmin);
-    let deletedUserEmails: string[] = [];
+    const deletedUserEmails: string[] = [];
 
     // step 3: delete non-admin users
     const deletionPromises = nonAdminUsers.map((user) => {

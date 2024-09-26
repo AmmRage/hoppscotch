@@ -82,6 +82,15 @@
         "
       />
 
+      <HoppButtonPrimary
+        :icon="IconEdit"
+        label="Change Password"
+        filled
+        outline
+        class="mr-4"
+        @click="emit('show-change-password', user.uid)"
+      />
+
       <HoppButtonSecondary
         :icon="IconTrash"
         :label="t('users.delete')"
@@ -94,6 +103,7 @@
             : emit('delete-user', user.uid)
         "
       />
+
     </div>
   </div>
 </template>
@@ -127,6 +137,7 @@ const emit = defineEmits<{
   (event: 'make-admin', userID: string): void;
   (event: 'remove-admin', userID: string): void;
   (event: 'update-user-name', newName: string): void;
+  (event: 'show-change-password', newName: string): void;
 }>();
 
 // Get Proper Date Formats
@@ -176,6 +187,8 @@ const userName = computed({
 
 // Contains the stored user name from the actual name before being edited
 const currentUserName = ref('');
+
+const showResetPasswordDialogue = ref(false);
 
 // Set the current user name to the actual user name
 onMounted(() => {

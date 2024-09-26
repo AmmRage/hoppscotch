@@ -29,6 +29,7 @@
             @delete-user="deleteUser"
             @make-admin="makeUserAdmin"
             @remove-admin="makeAdminToUser"
+            @show-change-password="showChangeUserPasswordModal"
             @update-user-name="(name: string) => (userName = name)"
             class="py-8 px-4"
           />
@@ -57,6 +58,12 @@
       @hide-modal="confirmAdminToUser = false"
       @resolve="makeAdminToUserMutation(adminToUserUID)"
     />
+
+    <UsersChangePasswordModal
+      v-if="confirmChangeUserPassword"
+      @change-password="changeUserPasswordMutation"
+      @hide-modal="confirmChangeUserPassword = false"
+    />
   </div>
 </template>
 
@@ -64,13 +71,14 @@
 import { useMutation } from '@urql/vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { isEmpty } from 'lodash-es';
 import { useI18n } from '~/composables/i18n';
 import { useToast } from '~/composables/toast';
 import { useClientHandler } from '~/composables/useClientHandler';
 import {
   DemoteUsersByAdminDocument,
   MakeUsersAdminDocument,
-  RemoveUsersByAdminDocument,
+  RemoveUsersByAdminDocument, ChangeUserPasswordDocument,
   UserInfoDocument,
 } from '~/helpers/backend/graphql';
 import { handleUserDeletion } from '~/helpers/userManagement';
@@ -182,6 +190,75 @@ const makeAdminToUserMutation = async (id: string | null) => {
   }
   confirmAdminToUser.value = false;
   adminToUserUID.value = null;
+};
+
+
+// Change user password
+const changeUserPassword = useMutation(ChangeUserPasswordDocument);
+const confirmChangeUserPassword = ref(false);
+const userUID = ref<string | null>(null);
+const newPassword = ref<string | null>(null);
+const oldPassword = ref<string | null>(null);
+
+const showChangeUserPasswordModal = (id: string) => {
+  confirmChangeUserPassword.value = true;
+  userUID.value = id;
+};
+
+const changeUserPasswordMutation = async (oldPwd: string, newPwd: string, repeatNewPwd: string) => {
+  if (newPwd !== repeatNewPwd) {
+    toast.error('Old password does not match');
+    return;
+  }
+
+  if (isEmpty(oldPwd) || isEmpty(newPwd) || isEmpty(repeatNewPwd) || !oldPwd || !newPwd || !repeatNewPwd || oldPwd === '' || newPwd === '' || repeatNewPwd === '') {
+    toast.error('Password cannot be empty');
+    return;
+  }
+
+  if (oldPwd === newPwd) {
+    toast.error('New password cannot be same as old password');
+    return;
+  }
+
+  if (newPwd.length < 6) {
+    toast.error('Password must be at least 6 characters long');
+    return;
+  }
+
+  if (newPwd.length > 16) {
+    toast.error('Password must be at most 16 characters long');
+    return;
+  }
+
+  if (newPwd.includes(' ')) {
+    toast.error('Password cannot contain spaces');
+    return;
+  }
+
+  if (!userUID) {
+    confirmChangeUserPassword.value = false;
+    toast.error(`Failed to change password for user`);
+    return;
+  }
+
+  const variables = {
+    userUID: userUID.value,
+    newPassword: newPwd,
+    oldPassword: oldPwd
+  };
+  const result = await changeUserPassword.executeMutation(variables);
+  if (result.error) {
+    toast.error(`error in changing password: ${result.error}`);
+  } else {
+    if(result.data?.changeUserPassword?.isSuccess){
+      toast.success(`Password changed successfully`);
+      confirmChangeUserPassword.value = false;
+    }
+    else{
+      toast.error(result.data?.changeUserPassword?.messages[0] ?? "error in changing password");
+    }
+  }
 };
 
 // User Deletion

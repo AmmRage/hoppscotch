@@ -32,7 +32,7 @@ export class MyLogger implements LoggerService {
 
     await this.ensureDirExists(logDirPath);
 
-    const logMessage = `[${date.toISOString()}] [${level}] ${message} ${optionalParams.join(
+    const logMessage = `[${date.toLocaleString()}] [${level}] ${message} ${optionalParams.join(
       ' ',
     )}\n`;
     try {

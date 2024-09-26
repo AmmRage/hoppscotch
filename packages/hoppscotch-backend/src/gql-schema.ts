@@ -30,6 +30,7 @@ import { UserSettingsUserResolver } from './user-settings/user.resolver';
 import { InfraResolver } from './admin/infra.resolver';
 import { InfraConfigResolver } from './infra-config/infra-config.resolver';
 import { InfraTokenResolver } from './infra-token/infra-token.resolver';
+import { UserPasswordResolver } from './user-password/user-password.resolver';
 
 /**
  * All the resolvers present in the application.
@@ -60,6 +61,7 @@ const RESOLVERS = [
   UserRequestUserCollectionResolver,
   UserSettingsResolver,
   UserSettingsUserResolver,
+  UserPasswordResolver,
   InfraConfigResolver,
   InfraTokenResolver,
 ];

@@ -112,6 +112,17 @@ model User {
   personalAccessTokens PersonalAccessToken[]
 }
 
+model UserPasswordViaEmailToken {
+  id                   String                @id @default(cuid())
+  userUid              String                @unique
+  email                String                @unique
+  token                String?
+  password             String?
+  createdAt            DateTime              @default(now()) @db.Timestamp(3)
+  updatedAt            DateTime              @default(now()) @db.Timestamp(3)
+}
+
+
 model Account {
   id                   String   @id @default(cuid())
   userId               String
@@ -175,6 +186,7 @@ model InvitedUsers {
   adminEmail   String
   inviteeEmail String   @unique
   invitedOn    DateTime @default(now()) @db.Timestamp(3)
+  inviteEmailStatus Boolean
 }
 
 model UserRequest {

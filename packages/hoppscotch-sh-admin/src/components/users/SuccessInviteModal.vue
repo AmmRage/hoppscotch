@@ -1,7 +1,7 @@
 <template>
   <HoppSmartModal
     dialog
-    :title="t('users.new_user_added')"
+    :title="t('users.invitation_sent')"
     @close="inviteSuccessModal = false"
   >
     <template #body>

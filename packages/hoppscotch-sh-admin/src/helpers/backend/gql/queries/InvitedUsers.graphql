@@ -5,6 +5,7 @@ query InvitedUsers {
       adminEmail
       inviteeEmail
       invitedOn
+      inviteEmailStatus
     }
   }
 }

@@ -22,6 +22,7 @@ export enum AuthProvider {
   GITHUB = 'GITHUB',
   MICROSOFT = 'MICROSOFT',
   EMAIL = 'EMAIL',
+  USER = 'USER',
 }
 
 /**
@@ -29,12 +30,15 @@ export enum AuthProvider {
  * @param res Express Response Object
  * @param authTokens Object containing the access and refresh tokens
  * @param redirect if true will redirect to provided URL else just send a 200 status code
+ * @param redirectUrl
+ * @param data
  */
 export const authCookieHandler = (
   res: Response,
   authTokens: AuthTokens,
   redirect: boolean,
   redirectUrl: string | null,
+  data: object = null,
 ) => {
   const configService = new ConfigService();
 
@@ -64,6 +68,13 @@ export const authCookieHandler = (
   });
 
   if (!redirect) {
+    console.debug(`Data: ${data}`);
+    if (data) {
+      console.debug('Data is present');
+      // if data is present send it back
+      return res.status(HttpStatus.OK).json(data);
+    }
+    console.debug('Data is not present');
     return res.status(HttpStatus.OK).send();
   }
 

@@ -8,6 +8,7 @@ import {
   Res,
   UseGuards,
   UseInterceptors,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInMagicDto } from './dto/signin-magic.dto';
@@ -30,6 +31,8 @@ import { ConfigService } from '@nestjs/config';
 import { throwHTTPErr } from 'src/utils';
 import { UserLastLoginInterceptor } from 'src/interceptors/user-last-login.interceptor';
 import { Logger } from '@nestjs/common';
+import { SignInPasswordDto } from './dto/signin-password.dto';
+import { VerifyPasswordDto } from './dto/verify-password.dto';
 
 @UseGuards(ThrottlerBehindProxyGuard)
 @Controller({ path: 'auth', version: '1' })
@@ -73,14 +76,90 @@ export class AuthController {
   }
 
   /**
+   ** Route to register username and password function, built on initiating magic-link auth for a users email
+   * step 1: use existing email based logic to generate user info
+   * step 2: if user not exist, create user with email and password. otherwise login user and return
+   * this api is used for admin registration and login
+   */
+  @Post('register-email-password')
+  async signInPasswordViaEmailToken(
+    @Body() authData: SignInPasswordDto,
+    @Res() res: Response,
+  ) {
+    if (
+      !authProviderCheck(
+        AuthProvider.EMAIL,
+        this.configService.get('INFRA.VITE_ALLOWED_AUTH_PROVIDERS'),
+      )
+    ) {
+      throwHTTPErr({ message: AUTH_PROVIDER_NOT_SPECIFIED, statusCode: 404 });
+    }
+
+    this.myLogger.log('signInPasswordViaEmailToken start to run without error');
+    this.myLogger.log('check password format');
+
+    if (
+      authData.password.length < 8 || // password must be at least 8 characters long
+      authData.password.length > 16 || // password must be at most 16 characters long
+      !authData.password.match(/[a-z]/) || // password must contain at least one lowercase letter
+      !authData.password.match(/[A-Z]/) || // password must contain at least one uppercase letter
+      !authData.password.match(/[0-9]/) // password must contain at least one number
+    ) {
+      throwHTTPErr({
+        message:
+          'Password must be  8-16 characters long and contain at least one lowercase letter, one uppercase letter, and one number',
+        statusCode: 400,
+      });
+    }
+    this.myLogger.log('password format passed');
+    const authResult = await this.authService.registerOrLogin(
+      authData.email,
+      authData.password,
+      'admin',
+    );
+    if (E.isLeft(authResult)) throwHTTPErr(authResult.left);
+    this.myLogger.debug('authResult: ' + JSON.stringify(authResult));
+    if (
+      authResult.right[1] === 'not-admin' ||
+      authResult.right[1] === 'not-invited'
+    ) {
+      this.myLogger.debug(
+        'signInPasswordViaEmailToken: not-admin or not-invited',
+      );
+      return res.status(HttpStatus.OK).json({
+        message: authResult.right[1],
+      });
+    }
+    authCookieHandler(res, authResult.right[0], false, null, {
+      message: authResult.right[1],
+    });
+  }
+
+  /**
    ** Route to verify and sign in a valid user via magic-link
    */
+  @Post('verify-email-password')
+  async verifyEmailAndPassword(
+    @Body() data: VerifyPasswordDto,
+    @Res() res: Response,
+  ) {
+    // console.debug(`verifyEmailAndPassword: ${JSON.stringify(data)}`);
+    const verifyResult = await this.authService.appVerifyUserByEmailPassword(
+      data.email,
+      data.password,
+    );
+    if (E.isLeft(verifyResult)) throwHTTPErr(verifyResult.left);
+    authCookieHandler(res, verifyResult.right[0], false, null, {
+      isSuccess: true,
+      message: verifyResult.right[1],
+    });
+  }
+
   @Post('verify')
   async verify(@Body() data: VerifyMagicDto, @Res() res: Response) {
     const authTokens = await this.authService.verifyMagicLinkTokens(data);
     if (E.isLeft(authTokens)) throwHTTPErr(authTokens.left);
-    const ret = authCookieHandler(res, authTokens.right, false, null);
-    // this.myLogger.log('verify', ret);
+    authCookieHandler(res, authTokens.right, false, null);
   }
 
   /**

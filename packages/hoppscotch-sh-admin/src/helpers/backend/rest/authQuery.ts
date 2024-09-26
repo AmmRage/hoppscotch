@@ -21,6 +21,13 @@ export default {
     restApi.post('/auth/signin?origin=admin', {
       email,
     }),
+  registerEmailPassword: (email: string, password: string) =>
+    restApi.post('/auth/register-email-password', {
+      email: email,
+      password: password
+    }),
+
+  //call verify
   signInWithEmailLink: (
     token: string | null,
     deviceIdentifier: string | null

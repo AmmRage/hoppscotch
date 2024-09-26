@@ -392,7 +392,7 @@ export class InfraConfigService implements OnModuleInit {
    * @param checkDisallowedKeys If true, check if the names are allowed to fetch by client
    * @returns InfraConfig model
    */
-  async getMany(names: InfraConfigEnum[], checkDisallowedKeys: boolean = true) {
+  async getMany(names: InfraConfigEnum[], checkDisallowedKeys = true) {
     if (checkDisallowedKeys) {
       // Check if the names are allowed to fetch by client
       for (let i = 0; i < names.length; i++) {
@@ -417,9 +417,11 @@ export class InfraConfigService implements OnModuleInit {
    * @returns string[]
    */
   getAllowedAuthProviders() {
-    return this.configService
-      .get<string>('INFRA.VITE_ALLOWED_AUTH_PROVIDERS')
-      .split(',');
+    const config = this.configService.get<string>(
+      'INFRA.VITE_ALLOWED_AUTH_PROVIDERS',
+    );
+    console.debug('Allowed Auth Providers:', config);
+    return config.split(',');
   }
 
   /**

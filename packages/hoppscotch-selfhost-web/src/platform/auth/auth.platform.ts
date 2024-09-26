@@ -274,6 +274,31 @@ export const def: AuthPlatformDef = {
     await sendMagicLink(email)
   },
 
+  async signInWithUsernamePassword(username: string, password: string) {
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_API_URL}/auth/verify-email-password`,
+      {
+        email: username,
+        password,
+        deviceIdentifier: "",
+        token: "",
+      },
+      {
+        withCredentials: true,
+      }
+    )
+    // if (res.data && res.data.deviceIdentifier) {
+    //   persistenceService.setLocalConfig(
+    //     "deviceIdentifier",
+    //     res.data.deviceIdentifier
+    //   )
+    // } else {
+    //   throw new Error("test: does not get device identifier")
+    // }
+
+    return res.data
+  },
+
   isSignInWithEmailLink(url: string) {
     const urlObject = new URL(url)
     const searchParams = new URLSearchParams(urlObject.search)
