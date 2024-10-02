@@ -24,6 +24,10 @@ COPY pnpm-lock.yaml .
 RUN pnpm fetch
 
 COPY . .
+
+RUN echo $VITE_BACKEND_GQL_URL
+RUN echo $VITE_ADMIN_BACKEND_GQL_URL
+
 RUN pnpm install -f
 
 #
@@ -200,9 +204,9 @@ RUN npm install -g pnpm
 COPY --from=base_builder /usr/src/app/packages/hoppscotch-backend/backend.Caddyfile /etc/caddy/backend.Caddyfile
 COPY --from=backend_builder /dist/backend /dist/backend
 COPY --from=base_builder /usr/src/app/packages/hoppscotch-backend/prod_run.mjs /dist/backend
+COPY --from=base_builder /usr/src/app/aio_run.mjs /dist/backend/aio_run.mjs
 
 # FE Files
-COPY --from=base_builder /usr/src/app/aio_run.mjs /usr/src/app/aio_run.mjs
 COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/dist /site/selfhost-web
 COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/dist-multiport-setup /site/sh-admin-multiport-setup
 COPY aio-multiport-setup.Caddyfile /etc/caddy/aio-multiport-setup.Caddyfile
@@ -215,7 +219,7 @@ HEALTHCHECK --interval=5s CMD /bin/sh /healthcheck.sh
 
 WORKDIR /dist/backend
 
-CMD ["node", "/usr/src/app/aio_run.mjs"]
+CMD ["node", "/dist/backend/aio_run.mjs"]
 EXPOSE 3170
 EXPOSE 3000
 EXPOSE 3100

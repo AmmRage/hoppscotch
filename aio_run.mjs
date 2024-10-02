@@ -45,7 +45,7 @@ injectEnvironmentVariables()
 
 function getMigrations() {
   try {
-    const result = execSync('npx prisma migrate status --schema=./prisma/schema.prisma', { encoding: 'utf-8' });
+    const result = execSync('npx prisma migrate status --schema=./prisma/schema.prisma', { encoding: 'utf-8', cwd : "/dist/backend", stdio: 'inherit' });
     console.log(result);
     simpleLogger("prisma", INFO_LOG, result)
   } catch (error) {
@@ -55,19 +55,34 @@ function getMigrations() {
 
 function getPendingMigrations() {
   try {
-    const result = execSync('npx prisma migrate status --schema=./prisma/schema.prisma', { encoding: 'utf-8' });
-    const pendingMigrations = result.match(/Pending migrations:\n([\s\S]*?)\n\n/);
-    if (pendingMigrations) {
-      console.log('Pending migrations:', pendingMigrations[1]);
-      simpleLogger("prisma", INFO_LOG, `Pending migrations: ${pendingMigrations[1]}`)
-      return true;
-    } else {
-      console.log('No pending migrations');
-      simpleLogger("prisma", INFO_LOG, "No pending migrations")
-      return false;
-    }
+    execSync('npx prisma migrate status --schema=./prisma/schema.prisma > pending.txt', { encoding: 'utf-8', cwd : "/dist/backend", stdio: 'ignore' });
+    return true;
   } catch (error) {
+
+    // 继续处理退出码为 1 的情况
+    if (error.status === 1) {
+      console.log('Prisma migrate status found issues, but this may not be a fatal error.');
+
+      const result = fs.readFileSync('pending.txt', 'utf-8')
+      console.log('Prisma migrate status output:', result);
+      const pendingMigrations = result.match(/Pending migrations:\n([\s\S]*?)\n\n/);
+      if (pendingMigrations) {
+        console.log('Pending migrations:', pendingMigrations[1]);
+        simpleLogger("prisma", INFO_LOG, `Pending migrations: ${pendingMigrations[1]}`)
+        return true;
+      } else {
+        console.log('No pending migrations');
+        simpleLogger("prisma", INFO_LOG, "No pending migrations")
+        return false;
+      }
+    }
+
     console.error('Error getting pending migrations:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
+    console.error('Command failed with exit code:', error.status);
+    console.error('stderr:', error.stderr ? error.stderr.toString() : 'No stderr');
+    console.error('stdout:', error.stdout ? error.stdout.toString() : 'No stdout');
     simpleLogger("prisma", ERROR_LOG, error)
     process.exit()
   }
@@ -75,7 +90,7 @@ function getPendingMigrations() {
 
 function migrate() {
   try {
-    let migrateResult = execSync('npx prisma migrate deploy --schema=./prisma/schema.prisma', { stdio: 'inherit' });
+    let migrateResult = execSync('npx prisma migrate deploy --schema=./prisma/schema.prisma', { encoding: 'utf-8', cwd : "/dist/backend", stdio: 'inherit' });
     simpleLogger("prisma", INFO_LOG, migrateResult ?? "Migrations applied successfully")
   } catch (error) {
     console.error('Error applying migrations:', error);

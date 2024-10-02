@@ -89,6 +89,9 @@ export class InfraConfigService implements OnModuleInit {
 
       // Restart the app if needed
       if (propsToInsert.length > 0 || encryptionRequiredEntries.length > 0) {
+        console.log(
+          'after Adding missing InfraConfigs to the database (with encrypted values), restart app',
+        );
         stopApp();
       }
     } catch (error) {
@@ -162,7 +165,10 @@ export class InfraConfigService implements OnModuleInit {
         data: { value: isEncrypted ? encrypt(value) : value },
       });
 
-      if (restartEnabled) stopApp();
+      if (restartEnabled) {
+        console.log('after Update InfraConfig by name, restart app');
+        stopApp();
+      }
 
       return E.right(this.cast(infraConfig));
     } catch (e) {
@@ -206,6 +212,9 @@ export class InfraConfigService implements OnModuleInit {
         }
       });
 
+      console.log(
+        'after updateMany - Update InfraConfigs by name, restart app',
+      );
       stopApp();
 
       return E.right(infraConfigs);
@@ -462,6 +471,9 @@ export class InfraConfigService implements OnModuleInit {
         data: updatedInfraConfigDefaultObjs,
       });
 
+      console.log(
+        'after reset - Reset all the InfraConfigs to their default values (from .env), restart app',
+      );
       stopApp();
 
       return E.right(true);
