@@ -1,0 +1,44 @@
+# To make it easier to self-host, we have a preset docker compose config that also
+# has a container with a Postgres instance running.
+# You can tweak around this file to match your instances
+
+services:
+  # The service that spins up all 3 services at once in one container
+  hoppscotch-aio:
+    container_name: hop
+    # The latest version of the image
+    image: ammrage/hop:latest
+    volumes:
+      - /your/aio/logs/directory:/usr/src/app/aio_logs
+    env_file:
+      - /your/aio/env/file/hoppscotch.env
+    depends_on:
+      hop-db:
+        condition: service_healthy
+    restart: always
+    ports:
+      - "3000:3000"
+      - "3100:3100"
+      - "3170:3170"
+
+  hop-db:
+    container_name: hop-db
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    user: postgres
+    environment:
+      # The default user defined by the docker image
+      POSTGRES_USER: postgres
+      # NOTE: Please UPDATE THIS PASSWORD!
+      POSTGRES_PASSWORD: your-postgresql-password
+      POSTGRES_DB: hoppscotch
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -7,17 +7,14 @@ const baseConfig = {
   withCredentials: true,
 };
 
-console.log('admin graphql baseURL', `${import.meta.env.$VITE_ADMIN_BACKEND_GQL_URL}`);
-
 const gqlApi = axios.create({
   ...baseConfig,
-  baseURL:`${import.meta.env.$VITE_ADMIN_BACKEND_GQL_URL}`,
+  baseURL:import.meta.env.VITE_ADMIN_BACKEND_GQL_URL,
 });
 
-console.log('admin api baseURL', `${import.meta.env.VITE_ADMIN_BACKEND_API_URL}`);
 const restApi = axios.create({
   ...baseConfig,
-  baseURL: `${import.meta.env.VITE_ADMIN_BACKEND_API_URL}`,
+  baseURL: import.meta.env.VITE_ADMIN_BACKEND_API_URL,
 });
 
 const listmonkApi = axios.create({

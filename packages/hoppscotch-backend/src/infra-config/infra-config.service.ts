@@ -92,6 +92,9 @@ export class InfraConfigService implements OnModuleInit {
         console.log(
           'after Adding missing InfraConfigs to the database (with encrypted values), restart app',
         );
+
+        console.log('inserted props');
+        console.log(JSON.stringify(propsToInsert));
         stopApp();
       }
     } catch (error) {

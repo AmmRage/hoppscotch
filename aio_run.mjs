@@ -41,6 +41,7 @@ const injectEnvironmentVariables = () => {
   simpleLogger("aio", INFO_LOG, "Environment variables injected")
 }
 
+console.log("AIO: Injecting environment variables")
 injectEnvironmentVariables()
 
 function getMigrations() {
@@ -61,28 +62,29 @@ function getPendingMigrations() {
 
     // 继续处理退出码为 1 的情况
     if (error.status === 1) {
-      console.log('Prisma migrate status found issues, but this may not be a fatal error.');
+      console.log('AIO: Prisma migrate status found issues, but this may not be a fatal error.');
 
       const result = fs.readFileSync('pending.txt', 'utf-8')
-      console.log('Prisma migrate status output:', result);
-      const pendingMigrations = result.match(/Pending migrations:\n([\s\S]*?)\n\n/);
+      console.log('AIO: Prisma migrate status output start:\n----------------------------------------------\n', result);
+      console.log('\n----------------------------------------------\n\n\n\n');
+      const pendingMigrations = result.match(/Following migrations have not yet been applied:\s*\n([\s\S]*?)\n\n/);
       if (pendingMigrations) {
-        console.log('Pending migrations:', pendingMigrations[1]);
+        console.log('AIO: Pending migrations:', pendingMigrations[1]);
         simpleLogger("prisma", INFO_LOG, `Pending migrations: ${pendingMigrations[1]}`)
         return true;
       } else {
-        console.log('No pending migrations');
+        console.log('AIO: No pending migrations');
         simpleLogger("prisma", INFO_LOG, "No pending migrations")
         return false;
       }
     }
 
-    console.error('Error getting pending migrations:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Error message:', error.message);
-    console.error('Command failed with exit code:', error.status);
-    console.error('stderr:', error.stderr ? error.stderr.toString() : 'No stderr');
-    console.error('stdout:', error.stdout ? error.stdout.toString() : 'No stdout');
+    console.error('AIO: Error getting pending migrations:', error);
+    console.error('AIO: Error stack:', error.stack);
+    console.error('AIO: Error message:', error.message);
+    console.error('AIO: Command failed with exit code:', error.status);
+    console.error('AIO: stderr:', error.stderr ? error.stderr.toString() : 'No stderr');
+    console.error('AIO: stdout:', error.stdout ? error.stdout.toString() : 'No stdout');
     simpleLogger("prisma", ERROR_LOG, error)
     process.exit()
   }
@@ -99,7 +101,9 @@ function migrate() {
   }
 }
 
-if(getPendingMigrations() === true){
+const getPendingMigrationsResult = getPendingMigrations() ?? '';
+console.log("AIO: Get pending migrations: ", getPendingMigrationsResult.toString())
+if(getPendingMigrationsResult === true){
   simpleLogger("prisma", INFO_LOG, "Applying pending migrations")
   migrate();
 }

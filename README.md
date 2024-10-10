@@ -11,7 +11,7 @@ use docker-compose file
 
 - [x] username and password login
 - [x] remove `subpath` build option
-- [ ] built in auto migrate
+- [x] built in auto migrate
 - [ ] file and things share server
 - [ ] cloud clipboard with label, group and syntax highlight
 - [ ] count down monitor
