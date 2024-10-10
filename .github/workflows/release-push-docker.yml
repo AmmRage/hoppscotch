@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./prod.Dockerfile
+          file: ./Dockerfile
           target: backend
           push: true
           platforms: |
@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./prod.Dockerfile
+          file: ./Dockerfile
           target: app
           push: true
           platforms: |
@@ -59,7 +59,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./prod.Dockerfile
+          file: ./Dockerfile
           target: sh_admin
           push: true
           platforms: |
@@ -73,7 +73,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./prod.Dockerfile
+          file: ./Dockerfile
           target: aio
           push: true
           platforms: |

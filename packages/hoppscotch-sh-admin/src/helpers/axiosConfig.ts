@@ -9,7 +9,7 @@ const baseConfig = {
 
 const gqlApi = axios.create({
   ...baseConfig,
-  baseURL: import.meta.env.VITE_ADMIN_BACKEND_GQL_URL,
+  baseURL:import.meta.env.VITE_ADMIN_BACKEND_GQL_URL,
 });
 
 const restApi = axios.create({
