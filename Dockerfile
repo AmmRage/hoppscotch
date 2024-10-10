@@ -112,6 +112,7 @@ FROM caddy:2-alpine AS app
 COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/prod_run.mjs /site/prod_run.mjs
 COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/selfhost-web.Caddyfile /etc/caddy/selfhost-web.Caddyfile
 COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/dist/ /site/selfhost-web
+COPY --from=base_builder /usr/src/app/version.txt /site/selfhost-web/version.txt
 
 RUN apk add nodejs npm
 
@@ -157,6 +158,7 @@ FROM caddy:2-alpine AS sh_admin
 COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/prod_run.mjs /site/prod_run.mjs
 COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/sh-admin-multiport-setup.Caddyfile /etc/caddy/sh-admin-multiport-setup.Caddyfile
 COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/dist-multiport-setup /site/sh-admin-multiport-setup
+COPY --from=base_builder /usr/src/app/version.txt /site/sh-admin-multiport-setup/version.txt
 
 RUN apk add nodejs npm
 
