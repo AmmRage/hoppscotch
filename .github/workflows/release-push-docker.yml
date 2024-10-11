@@ -16,7 +16,7 @@ jobs:
         run: commitid=$(git rev-parse HEAD) && echo "$commitid" > version.txt
 
       - name: Setup environment
-        run: cp .env.example .env version.txt
+        run: cp .env.example .env
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
