@@ -1,6 +1,6 @@
 import { authEvents$, def as platformAuth } from "@platform/auth"
 import { CollectionsPlatformDef } from "@hoppscotch/common/platform/collections"
-import { runDispatchWithOutSyncing } from "../../lib/sync"
+import { runDispatchWithOutSyncing } from "@lib/sync"
 
 import {
   exportUserCollectionsToJSON,
