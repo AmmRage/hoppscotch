@@ -61,10 +61,9 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: |
           pnpm install -f
+          pnpm run gen-gql
           cd packages/hoppscotch-backend
           pnpm exec prisma generate
-          cd ../../packages/hoppscotch-selfhost-desktop
-          pnpm run gql-codegen
 
       - uses: tauri-apps/tauri-action@v0
         env:
