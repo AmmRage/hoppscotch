@@ -57,12 +57,12 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: install frontend dependencies
+      - name: install dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: |
-          cd packages/hoppscotch-selfhost-desktop
-          pnpm install
-          pnpm run gql-codegen
+          pnpm install -f
+          cd packages/hoppscotch-backend
+          pnpm exec prisma generate
 
       - uses: tauri-apps/tauri-action@v0
         env:
